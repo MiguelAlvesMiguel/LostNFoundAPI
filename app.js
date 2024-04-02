@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const os = require('os');
 
 const app = express();
 
@@ -18,7 +19,7 @@ app.get('/users', (req, res) => {
 
 // Root route
 app.get('/', (req, res) => {
-    res.status(200).send('Welcome to ReClaim API!');
+    res.status(200).send(`Welcome to ReClaim API from server ${os.hostname()}!`);
 });
 
 const port = 3000;
