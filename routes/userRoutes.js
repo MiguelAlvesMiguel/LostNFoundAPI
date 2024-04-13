@@ -1,5 +1,6 @@
 const express = require('express');
 const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
+const pool = require('../db');
 
 const router = express.Router();
 
