@@ -16,6 +16,8 @@ const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 
 app.use('/users', userRoutes);
+app.use('/items', itemRoutes);
+
 
 app.get('/lost-objects', async (req, res) => {
   try {
