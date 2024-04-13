@@ -1,5 +1,6 @@
 /** CREATE TABLES **/
 
+DROP TABLE IF EXISTS Notificacao;
 DROP TABLE IF EXISTS Licitacao;
 DROP TABLE IF EXISTS Leilao;
 DROP TABLE IF EXISTS ObjetoAchado;
@@ -82,5 +83,14 @@ CREATE TABLE Licitacao
     utilizador_id INT NOT NULL,
     valor_licitacao DECIMAL(10, 2) NOT NULL,
     FOREIGN KEY (leilao_id) REFERENCES Leilao(ID) ON DELETE CASCADE,
+    FOREIGN KEY (utilizador_id) REFERENCES Utilizador(ID) ON DELETE CASCADE
+);
+
+CREATE TABLE Notificacao
+(
+    ID SERIAL PRIMARY KEY,
+    utilizador_id INT NOT NULL,
+    mensagem TEXT NOT NULL,
+    data TIMESTAMP NOT NULL,
     FOREIGN KEY (utilizador_id) REFERENCES Utilizador(ID) ON DELETE CASCADE
 );

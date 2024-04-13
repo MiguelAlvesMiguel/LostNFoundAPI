@@ -46,3 +46,8 @@ VALUES
     (1, 1, 50.00),
     (1, 2, 75.00),
     (2, 1, 100.00);
+
+INSERT INTO Notificacao (utilizador_id, mensagem, data)
+VALUES
+    (1, 'New auction available', '2023-06-01 10:00:00'),
+    (2, 'Item found matching your lost item', '2023-06-02 15:30:00');
