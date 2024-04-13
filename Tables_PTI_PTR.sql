@@ -1,6 +1,14 @@
 /** CREATE TABLES **/
 
+DROP TABLE IF EXISTS Licitacao;
+DROP TABLE IF EXISTS Leilao;
+DROP TABLE IF EXISTS ObjetoAchado;
+DROP TABLE IF EXISTS ObjetoPerdido;
+DROP TABLE IF EXISTS MembroPolicia;
+DROP TABLE IF EXISTS PostoPolicia;
+DROP TABLE IF EXISTS Admin;
 DROP TABLE IF EXISTS Utilizador;
+
 CREATE TABLE Utilizador
 (
     ID SERIAL PRIMARY KEY,
@@ -14,14 +22,12 @@ CREATE TABLE Utilizador
     ativo BOOLEAN NOT NULL
 );
 
-DROP TABLE IF EXISTS PostoPolicia;
 CREATE TABLE PostoPolicia
 (
     ID SERIAL PRIMARY KEY,
     morada VARCHAR(255)
 );
 
-DROP TABLE IF EXISTS MembroPolicia;
 CREATE TABLE MembroPolicia
 (
     ID INT PRIMARY KEY,
@@ -31,14 +37,12 @@ CREATE TABLE MembroPolicia
     FOREIGN KEY (ID) REFERENCES Utilizador(ID) ON DELETE CASCADE
 );
 
-DROP TABLE IF EXISTS Admin;
 CREATE TABLE Admin
 (
     adminId SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL
 );
 
-DROP TABLE IF EXISTS ObjetoPerdido;
 CREATE TABLE ObjetoPerdido
 (
     ID SERIAL PRIMARY KEY,
@@ -49,7 +53,6 @@ CREATE TABLE ObjetoPerdido
     ativo BOOLEAN NOT NULL -- se o objeto ainda nao foi encontrado
 );
 
-DROP TABLE IF EXISTS ObjetoAchado;
 CREATE TABLE ObjetoAchado
 (
     ID SERIAL PRIMARY KEY,
@@ -61,7 +64,6 @@ CREATE TABLE ObjetoAchado
     ativo BOOLEAN NOT NULL -- se o objeto ainda nao foi reclamado
 );
 
-DROP TABLE IF EXISTS Leilao;
 CREATE TABLE Leilao
 (
     ID SERIAL PRIMARY KEY,
@@ -73,7 +75,6 @@ CREATE TABLE Leilao
     FOREIGN KEY (objeto_achado_id) REFERENCES ObjetoAchado(ID) ON DELETE CASCADE
 );
 
-DROP TABLE IF EXISTS Licitacao;
 CREATE TABLE Licitacao
 (
     ID SERIAL PRIMARY KEY,
