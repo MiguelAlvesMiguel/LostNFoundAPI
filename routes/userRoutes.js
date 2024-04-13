@@ -4,7 +4,6 @@ const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, Goo
 const router = express.Router();
 
 // User registration endpoint
-// User registration endpoint
 router.post('/register', async (req, res) => {
   const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
@@ -25,6 +24,7 @@ router.post('/register', async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
 
 // User login endpoint (no change needed if already registered)
 router.post('/login', async (req, res) => {

@@ -18,7 +18,7 @@ CREATE TABLE Utilizador
     data_nasc DATE NOT NULL,
     morada VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    telemovel VARCHAR(20) NOT NULL, -- e.g.: +351 123 456 789
+    telemovel VARCHAR(20) NOT NULL,
     historico TEXT,
     ativo BOOLEAN NOT NULL
 );
@@ -31,7 +31,7 @@ CREATE TABLE PostoPolicia
 
 CREATE TABLE MembroPolicia
 (
-    ID VARCHAR(255) PRIMARY KEY REFERENCES Utilizador(ID) ON DELETE CASCADE,
+    ID VARCHAR(255) PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     posto_policia INT NOT NULL REFERENCES PostoPolicia(ID),
     historico_policia JSONB
@@ -50,8 +50,8 @@ CREATE TABLE ObjetoPerdido
     descricao TEXT NOT NULL,
     categoria VARCHAR(255) NOT NULL,
     data_perdido DATE NOT NULL,
-    localizacao_perdido JSONB NOT NULL, -- onde foi perdido o objeto
-    ativo BOOLEAN NOT NULL, -- se o objeto ainda nao foi encontrado
+    localizacao_perdido JSONB NOT NULL,
+    ativo BOOLEAN NOT NULL,
     utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
 );
 
@@ -61,9 +61,9 @@ CREATE TABLE ObjetoAchado
     descricao TEXT NOT NULL,
     categoria VARCHAR(255) NOT NULL,
     data_achado DATE NOT NULL,
-    localizacao_achado JSONB NOT NULL, -- onde foi achado o objeto
-    data_limite DATE NOT NULL, -- data limite para o objeto ser reclamado
-    ativo BOOLEAN NOT NULL, -- se o objeto ainda nao foi reclamado
+    localizacao_achado JSONB NOT NULL,
+    data_limite DATE NOT NULL,
+    ativo BOOLEAN NOT NULL,
     policial_id VARCHAR(255) NOT NULL REFERENCES MembroPolicia(ID) ON DELETE CASCADE
 );
 

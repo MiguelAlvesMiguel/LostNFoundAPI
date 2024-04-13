@@ -1,24 +1,23 @@
 -- Inserting a User
-INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, historico, ativo)
+INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo)
 VALUES
-('6f5f90c34KUCXNxzd3hEMY6OBSs2', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', 'No previous history', TRUE);
+('user-12345', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE);
+('6f5f90c34KUCXNxzd3hEMY6OBSs2', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'test@test.com', '+351 912 345 678', 'No previous history', TRUE);
 
--- Inserting a Police Station (if needed for the scenario)
+-- Inserting a Police Station
 INSERT INTO PostoPolicia (morada)
 VALUES
 ('987 Secondary St, Lisbon');
 
--- Inserting a Police Member who is also a user (adjust the ID as needed)
+-- Inserting a Police Member (not a user)
 INSERT INTO MembroPolicia (ID, nome, posto_policia, historico_policia)
 VALUES
-('police-12345', 'Officer Miguel', (SELECT ID FROM PostoPolicia WHERE morada = '987 Secondary St, Lisbon'), '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}'::jsonb);
+('police-67890', 'Officer Miguel', (SELECT ID FROM PostoPolicia WHERE morada = '987 Secondary St, Lisbon'), '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}'::jsonb);
 
-
--- Populate Admin table
-INSERT INTO Admin (nome)
+-- Example of adding an Admin who is a user
+INSERT INTO Admin (nome, utilizador_id)
 VALUES
-    ('Admin 1'),
-    ('Admin 2');
+('Admin Geral', 'user-12345');
 
 -- Populate ObjetoPerdido table
 INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo)
