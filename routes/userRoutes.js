@@ -4,13 +4,21 @@ const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, Goo
 const router = express.Router();
 
 // User registration endpoint
+// User registration endpoint
 router.post('/register', async (req, res) => {
-  const auth = getAuth();  // Get the auth instance at request time
-  const { email, password } = req.body;
+  const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
   try {
+    const auth = getAuth();  // Get the auth instance at request time
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+
+    // Insert the new user into the Utilizador table
+    await pool.query(
+      'INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
+    );
+
     res.status(201).json({ message: 'User registered successfully', user });
   } catch (error) {
     console.error('Error registering user:', error);
@@ -18,12 +26,12 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// User login endpoint
+// User login endpoint (no change needed if already registered)
 router.post('/login', async (req, res) => {
-  const auth = getAuth();  // Get the auth instance at request time
   const { email, password } = req.body;
 
   try {
+    const auth = getAuth();  // Get the auth instance at request time
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     res.status(200).json({ message: 'User logged in successfully', user });
@@ -35,18 +43,30 @@ router.post('/login', async (req, res) => {
 
 // Google sign-in endpoint
 router.post('/google-signin', async (req, res) => {
-  const auth = getAuth();  // Get the auth instance at request time
-  const provider = new GoogleAuthProvider();
-
   try {
+    const auth = getAuth();  // Get the auth instance at request time
+    const provider = new GoogleAuthProvider();
+
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+
+    // Check if this user is already in the database
+    const { rows } = await pool.query('SELECT * FROM Utilizador WHERE ID = $1', [user.uid]);
+    if (rows.length === 0) {
+      // Insert the new user into the Utilizador table
+      await pool.query(
+        'INSERT INTO Utilizador (ID, nome, email, ativo) VALUES ($1, $2, $3, $4)',
+        [user.uid, user.displayName || 'Anonymous', user.email, true]
+      );
+    }
+
     res.status(200).json({ message: 'User signed in with Google successfully', user });
   } catch (error) {
     console.error('Error signing in with Google:', error);
     res.status(401).json({ error: error.message });
   }
 });
+
 
 // Edit user account details
 router.put('/:userId', async (req, res) => {

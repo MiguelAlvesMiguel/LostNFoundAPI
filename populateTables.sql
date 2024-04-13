@@ -1,20 +1,18 @@
--- Populate Utilizador table
-INSERT INTO Utilizador (nome, genero, data_nasc, morada, email, telemovel, historico, ativo)
+-- Inserting a User
+INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, historico, ativo)
 VALUES
-    ('John Doe', 'Male', '1990-01-01', '123 Main St', 'john@example.com', '+351 123 456 789', NULL, true),
-    ('Jane Smith', 'Female', '1985-05-10', '456 Elm St', 'jane@example.com', '+351 987 654 321', NULL, true);
+('6f5f90c34KUCXNxzd3hEMY6OBSs2', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', 'No previous history', TRUE);
 
--- Populate PostoPolicia table
+-- Inserting a Police Station (if needed for the scenario)
 INSERT INTO PostoPolicia (morada)
 VALUES
-    ('789 Police St'),
-    ('321 Law Enforcement Ave');
+('987 Secondary St, Lisbon');
 
--- Populate MembroPolicia table
+-- Inserting a Police Member who is also a user (adjust the ID as needed)
 INSERT INTO MembroPolicia (ID, nome, posto_policia, historico_policia)
 VALUES
-    (1, 'Officer John', 1, '{"cases": ["Theft", "Assault"]}'),
-    (2, 'Officer Jane', 2, '{"cases": ["Robbery", "Fraud"]}');
+('police-12345', 'Officer Miguel', (SELECT ID FROM PostoPolicia WHERE morada = '987 Secondary St, Lisbon'), '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}'::jsonb);
+
 
 -- Populate Admin table
 INSERT INTO Admin (nome)

@@ -4,8 +4,9 @@ const bodyParser = require('body-parser');
 const { initializeApp } = require('firebase/app');
 const { getAuth } = require('firebase/auth');
 const firebaseConfig = require('./FirebaseConfig');
-const pool = require('./db');
+const pool = require('./db.js');
 const userRoutes = require('./routes/userRoutes.js');
+const itemRoutes = require('./routes/itemRoutes.js');
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
 
 
+//Só para testar
 app.get('/lost-objects', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM ObjetoPerdido');
