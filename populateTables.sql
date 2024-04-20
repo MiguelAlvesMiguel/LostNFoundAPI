@@ -32,7 +32,7 @@ INSERT INTO PostoPolicia (morada) VALUES ('987 Secondary St, Lisbon');
 -- Now, insert into MembroPolicia since ObjetoAchado references it
 -- Assuming the posto_policia ID for '987 Secondary St, Lisbon' is 1
 INSERT INTO MembroPolicia (ID, nome, posto_policia, historico_policia) VALUES
-('police-67890', 'Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}'::jsonb);
+('police-67890', 'Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
 
 -- Insert into Admin, which references Utilizador
 INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', 'user-12345');

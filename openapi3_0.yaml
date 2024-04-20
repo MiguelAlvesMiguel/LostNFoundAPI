@@ -1,0 +1,631 @@
+openapi: 3.0.0
+info:
+  title: Lost and Found System API
+  version: 1.0.0
+  description: API for managing lost and found items, auctions, and user accounts.
+
+servers:
+  - url: https://api.lostandfound.com/v1
+
+tags:
+  - name: User Management
+    description: Operations related to user accounts
+  - name: Lost Items
+    description: Operations for managing lost items
+  - name: Found Items
+    description: Operations for managing found items
+  - name: Police Operations
+    description: Operations specific to police functionalities
+  - name: Auctions
+    description: Auction related operations
+
+paths:
+  /users:
+    post:
+      tags:
+        - User Management
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created successfully
+        '400':
+          description: Invalid input
+
+  /users/login:
+    post:
+      tags:
+        - User Management
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string 
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Authentication failed
+
+  /users/{userId}:
+    put:
+      summary: Edit user account details
+      tags:
+        - User Management
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User details updated
+        '404':
+          description: User not found
+
+    delete:
+      summary: Remove a user account
+      tags:
+        - User Management
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: User account removed
+        '404':
+          description: User not found
+
+  /users/{userId}/status:
+    put:
+      summary: Update user account status (deactivate/reactivate)
+      tags:
+        - User Management
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: boolean # campo 'ativo'
+      responses:
+        '200':
+          description: User account status updated
+        '404':
+          description: User not found
+
+  /items/compare/{lostItemId}/{foundItemId}:
+    get:
+      summary: Compare a lost item with a found item
+      tags:
+        - Lost Items
+        - Found Items
+      parameters:
+        - in: path
+          name: lostItemId
+          required: true
+          schema:
+            type: integer 
+        - in: path
+          name: foundItemId
+          required: true
+          schema:
+            type: integer 
+      responses:
+        '200':
+          description: Comparison result between lost and found item
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  similarities:
+                    type: array
+                    items:
+                      type: string
+                  differences:
+                    type: array
+                    items:
+                      type: string
+
+  /items/found:
+    get:
+      tags:
+        - Found Items
+      summary: Search for found items
+      parameters:
+        - in: query
+          name: description
+          schema:
+            type: string
+          required: false
+          description: Description of the item
+      responses:
+        '200':
+          description: List of found items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FoundItem'
+
+  /items/lost/{itemId}/history:
+    get:
+      summary: View history of a lost item
+      tags:
+        - Lost Items
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer 
+      responses:
+        '200':
+          description: History of the lost item
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    date:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+
+  /items/found/{itemId}/deliver:
+    post:
+      summary: Register delivery of a found item to its owner
+      tags:
+        - Found Items
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ownerId:
+                  type: integer 
+                deliveryDate:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Found item delivery registered
+        '404':
+          description: Item not found
+  /police/posts:
+    post:
+      tags:
+        - Police Operations
+      summary: Register a new police post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                morada:
+                  type: string
+      responses:
+        '201':
+          description: Police post created successfully
+        '400':
+          description: Invalid input
+
+  /police/members:
+    post:
+      tags:
+        - Police Operations
+      summary: Register a new police member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nome:
+                  type: string
+                posto_policia:
+                  type: integer
+                historico_policia:
+                  type: string
+      responses:
+        '201':
+          description: Police member registered successfully
+        '400':
+          description: Invalid input
+
+  /police/items/found/register:
+    post:
+      tags:
+        - Police Operations
+      summary: Register a found item by police
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObjetoAchado'
+      responses:
+        '201':
+          description: Found item registered successfully
+        '400':
+          description: Invalid input
+
+  /police/items/{itemId}/claim:
+    put:
+      tags:
+        - Police Operations
+      summary: Claim a found item
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                claimantId:
+                  type: integer
+      responses:
+        '200':
+          description: Item claimed successfully
+        '404':
+          description: Item not found
+  /auctions:
+    get:
+      tags:
+        - Auctions
+      summary: Get list of auctions
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, upcoming, past] 
+          required: false
+          description: Filter auctions by status (active, upcoming, past)
+      responses:
+        '200':
+          description: A list of auctions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auction'
+
+  /auctions/history:
+    get:
+      summary: View auction history
+      tags:
+        - Auctions
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer # Changed to integer for user ID
+          description: User ID to filter auctions participated in
+      responses:
+        '200':
+          description: List of past auctions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Auction'
+
+  /auctions/{auctionId}/notify:
+    post:
+      summary: Subscribe to auction notifications
+      tags:
+        - Auctions
+      parameters:
+        - in: path
+          name: auctionId
+          required: true
+          schema:
+            type: integer # Changed to integer for auction ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer 
+      responses:
+        '200':
+          description: Successfully subscribed to notifications
+        '404':
+          description: Auction not found
+
+  /auctions/{auctionId}/notify/cancel:
+    post:
+      summary: Cancel auction notifications
+      tags:
+        - Auctions
+      parameters:
+        - in: path
+          name: auctionId
+          required: true
+          schema:
+            type: integer 
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+      responses:
+        '200':
+          description: Successfully cancelled notifications
+        '404':
+          description: Auction not found
+
+  /auctions/{auctionId}/pay:
+    post:
+      summary: Process payment for an auctioned item
+      tags:
+        - Auctions
+      parameters:
+        - in: path
+          name: auctionId
+          required: true
+          schema:
+            type: integer # Changed to integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bidderId:
+                  type: integer # Changed to integer
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Payment processed successfully
+        '404':
+          description: Auction not found
+
+  /reports/items:
+    get:
+      summary: Get report of lost and found items
+      tags:
+        - Reports
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Report of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    itemId:
+                      type: integer
+                    status:
+                      type: string
+                    category:
+                      type: string
+                    dateReported:
+                      type: string
+                      format: date-time
+
+  /reports/auctions:
+    get:
+      summary: Get auction statistics report
+      tags:
+        - Reports
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Auction statistics report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    auctionId:
+                      type: integer
+                    totalBids:
+                      type: integer
+                    highestBid:
+                      type: number
+                    averageBid:
+                      type: number
+
+  /reports/user-activity/{userId}:
+    get:
+      summary: Get report of user activity
+      tags:
+        - Reports
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer 
+      responses:
+        '200':
+          description: User activity report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalItemsLost:
+                    type: integer
+                  totalItemsFound:
+                    type: integer
+                  auctionsParticipated:
+                    type: integer
+
+components:
+  schemas:
+    PolicePost:
+      type: object
+      properties:
+        name:
+          type: string
+        identifier:
+          type: string 
+        address:
+          type: string
+
+    Auction:
+      type: object
+      properties:
+        auctionId: 
+          type: integer 
+        startingPrice:
+          type: number
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+
+    Bid:
+      type: object
+      properties:
+        auctionID:
+          type: integer 
+        bidderID:
+          type: integer 
+        amount:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      properties:
+        userId: 
+          type: integer 
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+
+    LostItem:
+      type: object
+      properties:
+        itemId: 
+          type: integer 
+        description:
+          type: string
+        category:
+          type: string
+        location:
+          type: string
+        dateLost:
+          type: string
+          format: date
+
+    FoundItem:
+      type: object
+      properties:
+        itemId: 
+          type: integer 
+        description:
+          type: string
+        location:
+          type: string
+        dateFound:
+          type: string
+          format: date
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+
+security:
+  - ApiKeyAuth: []
