@@ -289,7 +289,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ObjetoAchado'
+              $ref: '#/components/schemas/FoundItem'
       responses:
         '201':
           description: Found item registered successfully
@@ -444,6 +444,18 @@ paths:
           description: Payment processed successfully
         '404':
           description: Auction not found
+
+
+
+
+
+
+
+
+
+
+
+
 
   /reports/items:
     get:

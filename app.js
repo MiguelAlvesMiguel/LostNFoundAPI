@@ -38,8 +38,8 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  // Here you could add checks for your app's dependencies or other services
-  // For now, we're just sending back a 200 status code
+  //TODO
+  //Check the connection to the database
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
