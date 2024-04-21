@@ -17,6 +17,7 @@ const auth = getAuth(firebaseApp);
 app.use(bodyParser.json());
 app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
+app.use('/auctions', auctionRoutes);
 
 const port = process.env.PORT || 3003;
 

@@ -44,14 +44,14 @@ INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdi
 
 -- Populate ObjetoAchado
 INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, policial_id) VALUES
-('Found Keychain', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 'police-67890'),
-('Found Laptop', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', TRUE, 'police-67890');
+('Found Keychain', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, '10', 'police-67890'),
+('Found Laptop', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', TRUE, '10', 'police-67890');
 
 -- Assuming the IDs for the ObjetoAchado are 1 and 2 respectively
 -- Populate Leilao
 INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, ativo) VALUES
-(1, '2023-05-10', '2023-05-20', 'Online', TRUE),
-(2, '2023-05-15', '2023-05-25', 'Physical Location', TRUE);
+(1, '2023-05-10', '2023-05-20', 'Online', '9', TRUE),
+(2, '2023-05-15', '2023-05-25', 'Physical Location', '9', TRUE);
 
 -- Now, we can insert into Licitacao since it references Leilao and Utilizador
 -- Assuming the IDs for the Leilao are 1 and 2 respectively
