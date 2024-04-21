@@ -4,7 +4,8 @@ const pool = require('../db');
 
 const router = express.Router();
 
-// User registration endpoint
+
+
 router.post('/register', async (req, res) => {
   const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
