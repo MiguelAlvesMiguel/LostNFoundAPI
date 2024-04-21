@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
 
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3003;
 
 const server = app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);

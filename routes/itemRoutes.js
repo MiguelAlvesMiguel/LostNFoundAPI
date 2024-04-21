@@ -29,21 +29,34 @@ const isAuthenticated = async (req, res, next) => {
   }
 };
 
-// Register a lost item
+// Sanitize input data
+const sanitizeInput = (input) => {
+  return input.replace(/[^a-zA-Z0-9\s]/g, '');
+};
+
+// Register a lost item (RF-06)
+// Register a lost item (RF-06)
 router.post('/lost', isAuthenticated, async (req, res) => {
   const { descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
   const userId = req.userId;
 
-  // Input validation
+  // Input validation and sanitization
   if (!descricao || !categoria || !data_perdido || !localizacao_perdido || ativo === undefined) {
     console.log('Invalid input data');
     return res.status(400).json({ error: 'Invalid input data' });
   }
 
+  const sanitizedDescricao = sanitizeInput(descricao);
+  const sanitizedCategoria = sanitizeInput(categoria);
+  const sanitizedLocalizacao = {
+    latitude: sanitizeInput(localizacao_perdido.latitude.toString()),
+    longitude: sanitizeInput(localizacao_perdido.longitude.toString()),
+  };
+
   try {
     const result = await pool.query(
       'INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID',
-      [descricao, categoria, data_perdido, JSON.stringify(localizacao_perdido), ativo, userId]
+      [sanitizedDescricao, sanitizedCategoria, data_perdido, JSON.stringify(sanitizedLocalizacao), ativo, userId]
     );
     const itemId = result.rows[0].id;
     console.log('Lost item registered successfully with ID:', itemId);
@@ -54,16 +67,29 @@ router.post('/lost', isAuthenticated, async (req, res) => {
   }
 });
 
-// Edit details of a lost item
+// Edit details of a lost item (RF-06)
 router.put('/lost/:itemId', isAuthenticated, async (req, res) => {
   const { itemId } = req.params;
   const { descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
   const userId = req.userId;
 
+  // Input validation and sanitization
+  if (isNaN(parseInt(itemId))) {
+    console.log('Invalid item ID');
+    return res.status(400).json({ error: 'Invalid item ID' });
+  }
+
+  const sanitizedDescricao = sanitizeInput(descricao);
+  const sanitizedCategoria = sanitizeInput(categoria);
+  const sanitizedLocalizacao = {
+    latitude: sanitizeInput(localizacao_perdido.latitude.toString()),
+    longitude: sanitizeInput(localizacao_perdido.longitude.toString()),
+  };
+
   try {
     const result = await pool.query(
       'UPDATE ObjetoPerdido SET descricao = $1, categoria = $2, data_perdido = $3, localizacao_perdido = $4, ativo = $5 WHERE ID = $6 AND utilizador_id = $7',
-      [descricao, categoria, data_perdido, localizacao_perdido, ativo, itemId, userId]
+      [sanitizedDescricao, sanitizedCategoria, data_perdido, sanitizedLocalizacao, ativo, itemId, userId]
     );
 
     if (result.rowCount === 0) {
@@ -79,10 +105,16 @@ router.put('/lost/:itemId', isAuthenticated, async (req, res) => {
   }
 });
 
-// Remove a lost item
+// Remove a lost item (RF-06)
 router.delete('/lost/:itemId', isAuthenticated, async (req, res) => {
   const { itemId } = req.params;
   const userId = req.userId;
+
+  // Input validation
+  if (isNaN(parseInt(itemId))) {
+    console.log('Invalid item ID');
+    return res.status(400).json({ error: 'Invalid item ID' });
+  }
 
   try {
     const result = await pool.query('DELETE FROM ObjetoPerdido WHERE ID = $1 AND utilizador_id = $2', [itemId, userId]);
@@ -100,32 +132,25 @@ router.delete('/lost/:itemId', isAuthenticated, async (req, res) => {
   }
 });
 
-// Search lost items by description or category
+// Search lost items by description (RF-10)
 router.get('/lost/search', isAuthenticated, async (req, res) => {
-  const { description, category } = req.query;
+  const { description } = req.query;
+
+  // Input validation and sanitization
+  if (!description) {
+    console.log('Description parameter is required');
+    return res.status(400).json({ error: 'Description parameter is required' });
+  }
+  console.log('Description:', description);
+
+  const sanitizedDescription = sanitizeInput(description);
+
+  console.log('Sanitized description:', sanitizedDescription);
+
+
 
   try {
-    let query = 'SELECT * FROM ObjetoPerdido';
-    const values = [];
-
-    if (description || category) {
-      query += ' WHERE';
-
-      if (description) {
-        query += ' descricao ILIKE $' + (values.length + 1);
-        values.push(`%${description}%`);
-      }
-
-      if (category) {
-        if (description) {
-          query += ' AND';
-        }
-        query += ' categoria = $' + (values.length + 1);
-        values.push(category);
-      }
-    }
-
-    const result = await pool.query(query, values);
+    const result = await pool.query('SELECT * FROM ObjetoPerdido WHERE descricao ILIKE $1', [`%${sanitizedDescription}%`]);
     console.log('Lost items search result:', result.rows);
     res.status(200).json(result.rows);
   } catch (error) {
@@ -134,7 +159,30 @@ router.get('/lost/search', isAuthenticated, async (req, res) => {
   }
 });
 
-// Compare a lost item with a found item
+
+// Search lost items by category (RF-11)
+router.get('/lost/category', isAuthenticated, async (req, res) => {
+  const { category } = req.query;
+
+  // Input validation and sanitization
+  if (!category) {
+    console.log('Category parameter is required');
+    return res.status(400).json({ error: 'Category parameter is required' });
+  }
+
+  const sanitizedCategory = sanitizeInput(category);
+
+  try {
+    const result = await pool.query('SELECT * FROM ObjetoPerdido WHERE categoria ILIKE $1', [`%${sanitizedCategory}%`]);
+    console.log('Lost items search result:', result.rows);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error searching lost items:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Compare a lost item with a found item (RF-13)
 router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res) => {
   const { lostItemId, foundItemId } = req.params;
   const userId = req.userId;
@@ -144,8 +192,8 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
     console.log('Invalid item IDs');
     return res.status(400).json({ error: 'Invalid item IDs' });
   }
-   //TODO
-  // ONLY COPS SHOULD BE ABLE TO USE THIS ENDPOINT
+
+  // TODO: Check if the user is authorized (e.g., police officer)
 
   try {
     const lostItemResult = await pool.query('SELECT * FROM ObjetoPerdido WHERE ID = $1', [lostItemId]);
@@ -185,20 +233,20 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
   }
 });
 
-// Search for found items
+// Search for found items (RF-12)
 router.get('/found', isAuthenticated, async (req, res) => {
   const { description } = req.query;
 
+  // Input validation and sanitization
+  if (!description) {
+    console.log('Description parameter is required');
+    return res.status(400).json({ error: 'Description parameter is required' });
+  }
+
+  const sanitizedDescription = sanitizeInput(description);
+
   try {
-    let query = 'SELECT * FROM ObjetoAchado';
-    const values = [];
-
-    if (description) {
-      query += ' WHERE descricao ILIKE $1';
-      values.push(`%${description}%`);
-    }
-
-    const result = await pool.query(query, values);
+    const result = await pool.query('SELECT * FROM ObjetoAchado WHERE descricao ILIKE $1', [`%${sanitizedDescription}%`]);
     console.log('Found items search result:', result.rows);
     res.status(200).json(result.rows);
   } catch (error) {
@@ -207,40 +255,17 @@ router.get('/found', isAuthenticated, async (req, res) => {
   }
 });
 
-// View history of a lost item
-router.get('/lost/:itemId/history', isAuthenticated, async (req, res) => {
-  const { itemId } = req.params;
-  const userId = req.userId;
-
-  try {
-    const result = await pool.query(
-      'SELECT data_perdido, localizacao_perdido, ativo FROM ObjetoPerdido WHERE ID = $1 AND utilizador_id = $2',
-      [itemId, userId]
-    );
-
-    if (result.rowCount === 0) {
-      console.log('Lost item not found or not authorized');
-      res.status(404).json({ error: 'Item not found or not authorized' });
-    } else {
-      const history = result.rows.map((row) => ({
-        date: row.data_perdido,
-        location: row.localizacao_perdido,
-        status: row.ativo ? 'active' : 'inactive',
-      }));
-      console.log('Lost item history:', history);
-      res.status(200).json(history);
-    }
-  } catch (error) {
-    console.error('Error retrieving lost item history:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Register delivery of a found item to its owner
+// Register delivery of a found item to its owner (RF-16)
 router.post('/found/:itemId/deliver', isAuthenticated, async (req, res) => {
   const { itemId } = req.params;
   const { ownerId, deliveryDate } = req.body;
   const userId = req.userId;
+
+  // Input validation
+  if (isNaN(parseInt(itemId)) || isNaN(parseInt(ownerId))) {
+    console.log('Invalid item or owner ID');
+    return res.status(400).json({ error: 'Invalid item or owner ID' });
+  }
 
   try {
     const client = await pool.connect();
