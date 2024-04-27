@@ -7,6 +7,7 @@ const firebaseConfig = require('./FirebaseConfig');
 const pool = require('./db.js');
 const userRoutes = require('./routes/userRoutes.js');
 const itemRoutes = require('./routes/itemRoutes.js');
+const auctionRoutes = require('./routes/auctionRoutes.js');
 
 const app = express();
 
