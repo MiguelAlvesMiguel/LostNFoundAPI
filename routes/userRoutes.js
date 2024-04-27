@@ -1,9 +1,18 @@
 const express = require('express');
 const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
 const pool = require('../db');
+const auth0Config = require('../Auth0Config');
 
+const { auth } = require('express-oauth2-jwt-bearer');
+const jwksRsa = require('jwks-rsa');
+const axios = require('axios');
 const router = express.Router();
 
+const jwtCheck = auth({
+  audience: 'http://localhost:3003',
+  issuerBaseURL: 'https://dev-wtrodgpp1u52blif.us.auth0.com/',
+  tokenSigningAlg: 'RS256'
+});
 
 
 router.post('/register', async (req, res) => {
@@ -20,13 +29,23 @@ router.post('/register', async (req, res) => {
       [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
     );
 
-    res.status(201).json({ message: 'User registered successfully', user });
+     // Issue an Auth0 access token
+     const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+      grant_type: 'client_credentials',
+      client_id: auth0Config.clientId,
+      client_secret: auth0Config.clientSecret,
+      audience: auth0Config.audience
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+
+    res.status(201).json({ message: 'User registered successfully!', user, accessToken });
+
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(400).json({ error: error.message });
   }
 });
-
 
 // User login endpoint (no change needed if already registered)
 router.post('/login', async (req, res) => {
@@ -36,7 +55,19 @@ router.post('/login', async (req, res) => {
     const auth = getAuth();  // Get the auth instance at request time
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    res.status(200).json({ message: 'User logged in successfully', user });
+
+    // Issue an Auth0 access token
+    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+      grant_type: 'client_credentials',
+      client_id: auth0Config.clientId,
+      client_secret: auth0Config.clientSecret,
+      audience: auth0Config.audience
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+
+    res.status(200).json({ message: 'User logged in successfully', user, accessToken });
+
   } catch (error) {
     console.error('Error logging in user:', error);
     res.status(401).json({ error: error.message });
@@ -71,7 +102,7 @@ router.post('/google-signin', async (req, res) => {
 
 
 // Edit user account details
-router.put('/:userId', async (req, res) => {
+router.put('/:userId', jwtCheck, async (req, res) => {
   const { userId } = req.params;
   const { nome, genero, data_nasc, morada, telemovel, historico, ativo } = req.body;
 
@@ -93,7 +124,7 @@ router.put('/:userId', async (req, res) => {
 });
 
 // Remove a user account
-router.delete('/:userId', async (req, res) => {
+router.delete('/:userId', jwtCheck, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -111,7 +142,7 @@ router.delete('/:userId', async (req, res) => {
 });
 
 // Get notifications for a user
-router.get('/:userId/notifications', async (req, res) => {
+router.get('/:userId/notifications', jwtCheck, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -128,7 +159,7 @@ router.get('/:userId/notifications', async (req, res) => {
 });
 
 // Send a notification to a user
-router.post('/:userId/notifications', async (req, res) => {
+router.post('/:userId/notifications', jwtCheck, async (req, res) => {
   const { userId } = req.params;
   const { message } = req.body;
 
@@ -150,7 +181,7 @@ router.post('/:userId/notifications', async (req, res) => {
 });
 
 // Update user account status
-router.put('/:userId/status', async (req, res) => {
+router.put('/:userId/status', jwtCheck, async (req, res) => {
   const { userId } = req.params;
   const { status } = req.body;
 

@@ -9,6 +9,7 @@ const userRoutes = require('./routes/userRoutes.js');
 const itemRoutes = require('./routes/itemRoutes.js');
 const auctionRoutes = require('./routes/auctionRoutes.js');
 
+
 const app = express();
 
 // Initialize Firebase
@@ -20,7 +21,7 @@ app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
 app.use('/auctions', auctionRoutes);
 
-const port = process.env.PORT || 3003;
+const port = process.env.PORT || 3005;
 
 const server = app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
