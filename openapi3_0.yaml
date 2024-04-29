@@ -445,18 +445,6 @@ paths:
         '404':
           description: Auction not found
 
-
-
-
-
-
-
-
-
-
-
-
-
   /reports/items:
     get:
       summary: Get report of lost and found items
@@ -465,33 +453,88 @@ paths:
       parameters:
         - in: query
           name: startDate
+          description: Start date for filtering the report by the date items were reported lost.
+          required: true
           schema:
             type: string
             format: date
         - in: query
           name: endDate
+          description: End date for filtering the report by the date items were reported lost.
+          required: true
           schema:
             type: string
             format: date
       responses:
         '200':
-          description: Report of items
+          description: Report of lost and found items with statistics.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    itemId:
-                      type: integer
-                    status:
-                      type: string
-                    category:
-                      type: string
-                    dateReported:
-                      type: string
-                      format: date-time
+                type: object
+                properties:
+                  lost_and_found_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        itemId:
+                          type: integer
+                        descricao:
+                          type: string
+                        categoria:
+                          type: string
+                        localizacao_perdido:
+                          type: string
+                        encontrado:
+                          type: boolean
+                        foundItem:
+                          type: object
+                          nullable: true
+                          properties:
+                            itemId:
+                              type: integer
+                            descricao:
+                              type: string
+                            categoria:
+                              type: string
+                            localizacao_achado:
+                              type: string
+                            data_achado:
+                              type: string
+                              format: date-time
+                        data_perdido:
+                          type: string
+                          format: date-time
+                  stats:
+                    type: object
+                    properties:
+                      totalLost:
+                        type: integer
+                      totalFound:
+                        type: integer
+                      lostToFoundRatio:
+                        type: number
+                      averageTimeToFind:
+                        type: string
+        '400':
+          description: Invalid date format or logical inconsistency in dates.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No items found for the given date range.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error while retrieving data.
+          content:
+            text/plain:
+              schema:
+                type: string
 
   /reports/auctions:
     get:
@@ -501,17 +544,21 @@ paths:
       parameters:
         - in: query
           name: startDate
+          required: true
+          description: The start date for the auction report range.
           schema:
             type: string
             format: date
         - in: query
           name: endDate
+          required: true
+          description: The end date for the auction report range.
           schema:
             type: string
             format: date
       responses:
         '200':
-          description: Auction statistics report
+          description: Auction statistics report successfully retrieved.
           content:
             application/json:
               schema:
@@ -521,12 +568,38 @@ paths:
                   properties:
                     auctionId:
                       type: integer
+                      description: The unique identifier of the auction.
                     totalBids:
                       type: integer
+                      description: The total number of bids placed in the auction.
                     highestBid:
                       type: number
+                      description: The highest bid value in the auction.
                     averageBid:
                       type: number
+                      description: The average bid value in the auction.
+        '400':
+          description: Invalid date format or start date is after the end date.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No auctions found for the given date range.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: No auctions found for the given date range.
+        '500':
+          description: Internal server error while retrieving data.
+          content:
+            text/plain:
+              schema:
+                type: string
 
   /reports/user-activity/{userId}:
     get:
@@ -549,10 +622,28 @@ paths:
                 properties:
                   totalItemsLost:
                     type: integer
-                  totalItemsFound:
-                    type: integer
+                    description: The total number of items reported lost by the user.
                   auctionsParticipated:
                     type: integer
+                    description: The number of unique auctions in which the user has participated.
+        '400':
+          description: Invalid user ID format. User ID must be an integer.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: User not found or inactive.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error.
+          content:
+            text/plain:
+              schema:
+                type: string
 
 components:
   schemas:

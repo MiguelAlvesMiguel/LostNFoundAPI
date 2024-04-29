@@ -50,8 +50,15 @@ INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado,
 -- Assuming the IDs for the ObjetoAchado are 1 and 2 respectively
 -- Populate Leilao
 INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, ativo) VALUES
-(1, '2023-05-10', '2023-05-20', 'Online', '9', TRUE),
-(2, '2023-05-15', '2023-05-25', 'Physical Location', '9', TRUE);
+(1, '2023-05-10', '2023-05-20', 'Online', TRUE),
+(2, '2023-05-15', '2023-05-25', 'Physical Location', TRUE),
+(100, '2024-01-01', '2024-01-10', 'Auction House 1', TRUE),
+(101, '2024-02-01', '2024-02-10', 'Auction House 2', TRUE),
+(102, '2024-03-01', '2024-03-10', 'Auction House 3', FALSE),
+(103, '2024-04-01', '2024-04-10', 'Auction House 4', TRUE),
+(104, '2024-05-01', '2024-05-10', 'Auction House 5', TRUE);
+
+
 
 -- Now, we can insert into Licitacao since it references Leilao and Utilizador
 -- Assuming the IDs for the Leilao are 1 and 2 respectively
