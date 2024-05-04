@@ -301,12 +301,14 @@ paths:
       tags:
         - Police Operations
       summary: Claim a found item
+      description: Claims an active item as found by updating its status.
       parameters:
         - in: path
           name: itemId
           required: true
           schema:
             type: integer
+          description: The unique identifier of the item to claim.
       requestBody:
         required: true
         content:
@@ -316,11 +318,17 @@ paths:
               properties:
                 claimantId:
                   type: integer
+                  description: The unique identifier of the user claiming the item.
       responses:
         '200':
-          description: Item claimed successfully
+          description: Item claimed successfully.
+        '400':
+          description: Invalid input, itemId or claimantId must be integers.
         '404':
-          description: Item not found
+          description: Item not found or already claimed.
+        '500':
+          description: Server error while claiming the item.
+
   /auctions:
     get:
       tags:
