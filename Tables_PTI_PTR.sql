@@ -29,7 +29,7 @@ CREATE TABLE PostoPolicia
 
 CREATE TABLE MembroPolicia
 (
-    ID VARCHAR(255) PRIMARY KEY,
+    ID SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     posto_policia INT NOT NULL REFERENCES PostoPolicia(ID),
     historico_policia JSONB
