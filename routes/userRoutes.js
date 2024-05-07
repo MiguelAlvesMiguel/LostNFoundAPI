@@ -1,78 +1,78 @@
-const express = require('express');
-const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
-const pool = require('../db');
-const auth0Config = require('../Auth0Config');
+  const express = require('express');
+  const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
+  const pool = require('../db');
+  const auth0Config = require('../Auth0Config');
 
-const { auth } = require('express-oauth2-jwt-bearer');
-const jwksRsa = require('jwks-rsa');
-const axios = require('axios');
-const router = express.Router();
+  const { auth } = require('express-oauth2-jwt-bearer');
+  const jwksRsa = require('jwks-rsa');
+  const axios = require('axios');
+  const router = express.Router();
 
-const jwtCheck = auth({
-  audience: 'http://localhost:3003',
-  issuerBaseURL: 'https://dev-wtrodgpp1u52blif.us.auth0.com/',
-  tokenSigningAlg: 'RS256'
-});
+  const jwtCheck = auth({
+    audience: 'http://localhost:3003',
+    issuerBaseURL: 'https://dev-wtrodgpp1u52blif.us.auth0.com/',
+    tokenSigningAlg: 'RS256'
+  });
 
 
-router.post('/register', async (req, res) => {
-  const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
+  router.post('/register', async (req, res) => {
+    const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
-  try {
-    const auth = getAuth();  // Get the auth instance at request time
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    try {
+      const auth = getAuth();  // Get the auth instance at request time
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    // Insert the new user into the Utilizador table
-    await pool.query(
-      'INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
-    );
+      // Insert the new user into the Utilizador table
+      await pool.query(
+        'INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
+      );
 
-     // Issue an Auth0 access token
-     const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-      grant_type: 'client_credentials',
-      client_id: auth0Config.clientId,
-      client_secret: auth0Config.clientSecret,
-      audience: auth0Config.audience
-    });
+      // Issue an Auth0 access token
+      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+        grant_type: 'client_credentials',
+        client_id: auth0Config.clientId,
+        client_secret: auth0Config.clientSecret,
+        audience: auth0Config.audience
+      });
 
-    const accessToken = tokenResponse.data.access_token;
+      const accessToken = tokenResponse.data.access_token;
 
-    res.status(201).json({ message: 'User registered successfully!', user, accessToken });
+      res.status(201).json({ message: 'User registered successfully!', user, accessToken });
 
-  } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
+    } catch (error) {
+      console.error('Error registering user:', error);
+      res.status(400).json({ error: error.message });
+    }
+  });
 
-// User login endpoint (no change needed if already registered)
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  // User login endpoint (no change needed if already registered)
+  router.post('/login', async (req, res) => {
+    const { email, password } = req.body;
 
-  try {
-    const auth = getAuth();  // Get the auth instance at request time
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    try {
+      const auth = getAuth();  // Get the auth instance at request time
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    // Issue an Auth0 access token
-    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-      grant_type: 'client_credentials',
-      client_id: auth0Config.clientId,
-      client_secret: auth0Config.clientSecret,
-      audience: auth0Config.audience
-    });
+      // Issue an Auth0 access token
+      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+        grant_type: 'client_credentials',
+        client_id: auth0Config.clientId,
+        client_secret: auth0Config.clientSecret,
+        audience: auth0Config.audience
+      });
 
-    const accessToken = tokenResponse.data.access_token;
+      const accessToken = tokenResponse.data.access_token;
 
-    res.status(200).json({ message: 'User logged in successfully', user, accessToken });
+      res.status(200).json({ message: 'User logged in successfully', user, accessToken });
 
-  } catch (error) {
-    console.error('Error logging in user:', error);
-    res.status(401).json({ error: error.message });
-  }
-});
+    } catch (error) {
+      console.error('Error logging in user:', error);
+      res.status(401).json({ error: error.message });
+    }
+  });
 
 // Google sign-in endpoint
 router.post('/google-signin', async (req, res) => {

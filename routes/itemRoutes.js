@@ -34,7 +34,18 @@ const sanitizeInput = (input) => {
   return input.replace(/[^a-zA-Z0-9\s]/g, '');
 };
 
-// Register a lost item (RF-06)
+//Get all lost items
+router.get('/lost', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM ObjetoPerdido');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // Register a lost item (RF-06)
 router.post('/lost', isAuthenticated, async (req, res) => {
   const { descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;

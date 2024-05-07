@@ -21,7 +21,7 @@ app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
 app.use('/auctions', auctionRoutes);
 
-const port = process.env.PORT || 3005;
+const port = process.env.PORT || 4242;
 
 const server = app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
