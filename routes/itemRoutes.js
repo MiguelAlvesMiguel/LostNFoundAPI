@@ -4,9 +4,6 @@ const { getAuth } = require('firebase/auth');
 const router = express.Router();
 const admin = require('firebase-admin');
 
-admin.initializeApp({
-  credential: admin.credential.cert(require('../adminKey.json')),
-});
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -245,7 +242,7 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
 });
 
 // Search for found items (RF-12)
-router.get('/found', isAuthenticated, async (req, res) => {
+router.get('/found', async (req, res) => {
   const { description } = req.query;
 
   // Input validation and sanitization

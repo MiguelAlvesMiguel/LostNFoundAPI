@@ -8,8 +8,14 @@ const cors = require('cors');  // Ensure CORS is required at the top.
 //import os:
 const os = require('os');
 const app = express();
+const admin = require('firebase-admin');
+
 
 // Initialize Firebase
+// Initialize Firebase Admin with credentials from a local file
+admin.initializeApp({
+  credential: admin.credential.cert(require('./adminKey.json'))
+});
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 
