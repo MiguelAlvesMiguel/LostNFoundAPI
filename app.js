@@ -25,9 +25,10 @@ const userRoutes = require('./routes/userRoutes.js');
 const itemRoutes = require('./routes/itemRoutes.js');
 const auctionRoutes = require('./routes/auctionRoutes.js');
 
-app.use('/users', userRoutes);
-app.use('/items', itemRoutes);
-app.use('/auctions', auctionRoutes);
+// Prefix all routes with /v1/
+app.use('/v1/users', userRoutes);
+app.use('/v1/items', itemRoutes);
+app.use('/v1/auctions', auctionRoutes);
 
 const port = process.env.PORT || 3999;
 
