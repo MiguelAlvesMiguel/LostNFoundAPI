@@ -7,17 +7,25 @@ const firebaseConfig = require('./FirebaseConfig');
 const pool = require('./db.js');
 const userRoutes = require('./routes/userRoutes.js');
 const itemRoutes = require('./routes/itemRoutes.js');
+const auctionRoutes = require('./routes/auctionRoutes.js');
+
 
 const app = express();
-
-app.use(bodyParser.json());
 
 // Initialize Firebase
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
 
+app.use(bodyParser.json());
 app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
+app.use('/auctions', auctionRoutes);
+
+const port = process.env.PORT || 4242;
+
+const server = app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
 
 
 //Só para testar
@@ -38,10 +46,11 @@ app.get('/', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  //TODO
-  //Check the connection to the database
+  //TODO: Implement database connection check
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-const port = 3000;
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+
+//app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+
+module.exports = server;

@@ -29,7 +29,7 @@ CREATE TABLE PostoPolicia
 
 CREATE TABLE MembroPolicia
 (
-    ID VARCHAR(255) PRIMARY KEY,
+    ID SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     posto_policia INT NOT NULL REFERENCES PostoPolicia(ID),
     historico_policia JSONB
@@ -62,6 +62,7 @@ CREATE TABLE ObjetoAchado
     localizacao_achado JSONB NOT NULL,
     data_limite DATE NOT NULL,
     ativo BOOLEAN NOT NULL,
+    valor_monetario DECIMAL(10, 2),
     policial_id VARCHAR(255) NOT NULL REFERENCES MembroPolicia(ID) ON DELETE CASCADE
 );
 
@@ -72,6 +73,7 @@ CREATE TABLE Leilao
     data_inicio DATE NOT NULL,
     data_fim DATE NOT NULL,
     localizacao TEXT NOT NULL,
+    valor_base DECIMAL(10, 2) NOT NULL,
     ativo BOOLEAN NOT NULL
 );
 

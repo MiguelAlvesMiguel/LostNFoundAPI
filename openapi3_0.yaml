@@ -240,50 +240,85 @@ paths:
       tags:
         - Police Operations
       summary: Register a new police post
+      description: This endpoint registers a new police post by providing the required address (morada) information.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - morada
               properties:
                 morada:
                   type: string
+                  description: The address of the new police post.
       responses:
         '201':
-          description: Police post created successfully
+          description: Police post created successfully. Returns the ID of the newly created post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: integer
         '400':
-          description: Invalid input
+          description: Invalid input. The "morada" field is missing or is not a valid string.
+        '500':
+          description: Server error while creating the police post.
 
   /police/members:
     post:
       tags:
         - Police Operations
       summary: Register a new police member
+      description: Adds a new member to the police database. The system automatically generates a unique ID for each new member.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - nome
+                - posto_policia
               properties:
                 nome:
                   type: string
+                  description: The full name of the police member.
                 posto_policia:
                   type: integer
+                  description: The reference ID to an existing police station record.
                 historico_policia:
                   type: string
+                  description: A JSON formatted string detailing the police member's history.
       responses:
         '201':
-          description: Police member registered successfully
+          description: Police member registered successfully. Returns the ID of the newly registered member.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: integer
         '400':
-          description: Invalid input
+          description: Invalid input, required fields are missing or incorrect type of data was provided.
+        '500':
+          description: Internal server error. Indicates a server-side error that prevented the member from being registered.
+
 
   /police/items/found/register:
     post:
       tags:
         - Police Operations
       summary: Register a found item by police
+      description: This endpoint allows police to register items that have been found. It requires detailed item information and returns an ID of the newly registered item if successful.
       requestBody:
         required: true
         content:
@@ -292,21 +327,26 @@ paths:
               $ref: '#/components/schemas/FoundItem'
       responses:
         '201':
-          description: Found item registered successfully
+          description: Found item registered successfully. Returns the ID of the newly registered item.
         '400':
-          description: Invalid input
+          description: Invalid input. One or more of the required fields are missing or malformed.
+        '500':
+          description: Internal server error. Indicates a server-side error that prevented the item from being registered.
+
 
   /police/items/{itemId}/claim:
     put:
       tags:
         - Police Operations
       summary: Claim a found item
+      description: Claims an active item as found by updating its status.
       parameters:
         - in: path
           name: itemId
           required: true
           schema:
             type: integer
+          description: The unique identifier of the item to claim.
       requestBody:
         required: true
         content:
@@ -316,11 +356,17 @@ paths:
               properties:
                 claimantId:
                   type: integer
+                  description: The unique identifier of the user claiming the item.
       responses:
         '200':
-          description: Item claimed successfully
+          description: Item claimed successfully.
+        '400':
+          description: Invalid input, itemId or claimantId must be integers.
         '404':
-          description: Item not found
+          description: Item not found or already claimed.
+        '500':
+          description: Server error while claiming the item.
+
   /auctions:
     get:
       tags:
@@ -445,18 +491,6 @@ paths:
         '404':
           description: Auction not found
 
-
-
-
-
-
-
-
-
-
-
-
-
   /reports/items:
     get:
       summary: Get report of lost and found items
@@ -465,33 +499,88 @@ paths:
       parameters:
         - in: query
           name: startDate
+          description: Start date for filtering the report by the date items were reported lost.
+          required: true
           schema:
             type: string
             format: date
         - in: query
           name: endDate
+          description: End date for filtering the report by the date items were reported lost.
+          required: true
           schema:
             type: string
             format: date
       responses:
         '200':
-          description: Report of items
+          description: Report of lost and found items with statistics.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    itemId:
-                      type: integer
-                    status:
-                      type: string
-                    category:
-                      type: string
-                    dateReported:
-                      type: string
-                      format: date-time
+                type: object
+                properties:
+                  lost_and_found_items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        itemId:
+                          type: integer
+                        descricao:
+                          type: string
+                        categoria:
+                          type: string
+                        localizacao_perdido:
+                          type: string
+                        encontrado:
+                          type: boolean
+                        foundItem:
+                          type: object
+                          nullable: true
+                          properties:
+                            itemId:
+                              type: integer
+                            descricao:
+                              type: string
+                            categoria:
+                              type: string
+                            localizacao_achado:
+                              type: string
+                            data_achado:
+                              type: string
+                              format: date-time
+                        data_perdido:
+                          type: string
+                          format: date-time
+                  stats:
+                    type: object
+                    properties:
+                      totalLost:
+                        type: integer
+                      totalFound:
+                        type: integer
+                      lostToFoundRatio:
+                        type: number
+                      averageTimeToFind:
+                        type: string
+        '400':
+          description: Invalid date format or logical inconsistency in dates.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No items found for the given date range.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error while retrieving data.
+          content:
+            text/plain:
+              schema:
+                type: string
 
   /reports/auctions:
     get:
@@ -501,17 +590,21 @@ paths:
       parameters:
         - in: query
           name: startDate
+          required: true
+          description: The start date for the auction report range.
           schema:
             type: string
             format: date
         - in: query
           name: endDate
+          required: true
+          description: The end date for the auction report range.
           schema:
             type: string
             format: date
       responses:
         '200':
-          description: Auction statistics report
+          description: Auction statistics report successfully retrieved.
           content:
             application/json:
               schema:
@@ -521,12 +614,38 @@ paths:
                   properties:
                     auctionId:
                       type: integer
+                      description: The unique identifier of the auction.
                     totalBids:
                       type: integer
+                      description: The total number of bids placed in the auction.
                     highestBid:
                       type: number
+                      description: The highest bid value in the auction.
                     averageBid:
                       type: number
+                      description: The average bid value in the auction.
+        '400':
+          description: Invalid date format or start date is after the end date.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: No auctions found for the given date range.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: No auctions found for the given date range.
+        '500':
+          description: Internal server error while retrieving data.
+          content:
+            text/plain:
+              schema:
+                type: string
 
   /reports/user-activity/{userId}:
     get:
@@ -549,10 +668,28 @@ paths:
                 properties:
                   totalItemsLost:
                     type: integer
-                  totalItemsFound:
-                    type: integer
+                    description: The total number of items reported lost by the user.
                   auctionsParticipated:
                     type: integer
+                    description: The number of unique auctions in which the user has participated.
+        '400':
+          description: Invalid user ID format. User ID must be an integer.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: User not found or inactive.
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Internal server error.
+          content:
+            text/plain:
+              schema:
+                type: string
 
 components:
   schemas:
