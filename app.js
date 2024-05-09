@@ -5,7 +5,8 @@ const { getAuth } = require('firebase/auth');
 const firebaseConfig = require('./FirebaseConfig');
 const pool = require('./db.js');
 const cors = require('cors');  // Ensure CORS is required at the top.
-
+//import os:
+const os = require('os');
 const app = express();
 
 // Initialize Firebase
@@ -28,7 +29,7 @@ app.use('/users', userRoutes);
 app.use('/items', itemRoutes);
 app.use('/auctions', auctionRoutes);
 
-const port = process.env.PORT || 4243;
+const port = process.env.PORT || 3999;
 
 app.get('/', (req, res) => {
   res.status(200).send(`Welcome to ReClaim API from server ${os.hostname()}!`);
