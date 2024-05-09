@@ -24,11 +24,13 @@ app.use(bodyParser.json());
 const userRoutes = require('./routes/userRoutes.js');
 const itemRoutes = require('./routes/itemRoutes.js');
 const auctionRoutes = require('./routes/auctionRoutes.js');
+const policeRoutes = require('./routes/policeRoutes.js');
 
 // Prefix all routes with /v1/
 app.use('/v1/users', userRoutes);
 app.use('/v1/items', itemRoutes);
 app.use('/v1/auctions', auctionRoutes);
+app.use('/v1/police', policeRoutes);
 
 const port = process.env.PORT || 3999;
 
