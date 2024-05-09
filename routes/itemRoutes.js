@@ -42,7 +42,6 @@ router.get('/lost', async (req, res) => {
   }
 });
 
-
 // Register a lost item (RF-06)
 router.post('/lost', isAuthenticated, async (req, res) => {
   const { descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
@@ -241,24 +240,13 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
   }
 });
 
-// Search for found items (RF-12)
+// GET ALL FOUND ITEMS
 router.get('/found', async (req, res) => {
-  const { description } = req.query;
-
-  // Input validation and sanitization
-  if (!description) {
-    console.log('Description parameter is required');
-    return res.status(400).json({ error: 'Description parameter is required' });
-  }
-
-  const sanitizedDescription = sanitizeInput(description);
-
   try {
-    const result = await pool.query('SELECT * FROM ObjetoAchado WHERE descricao ILIKE $1', [`%${sanitizedDescription}%`]);
-    console.log('Found items search result:', result.rows);
-    res.status(200).json(result.rows);
+    const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
+    res.json(rows);
   } catch (error) {
-    console.error('Error searching found items:', error);
+    console.error('Error executing query', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
