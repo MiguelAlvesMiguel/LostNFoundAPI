@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS Utilizador;
 
 -- Create tables
 CREATE TABLE Utilizador (
-    ID VARCHAR(255) PRIMARY KEY,
+    ID SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     genero VARCHAR(50) NOT NULL,
     data_nasc DATE NOT NULL,
