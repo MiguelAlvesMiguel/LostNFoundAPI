@@ -3,10 +3,6 @@ const pool = require('../db'); // Assuming this is your configured PostgreSQL co
 const admin = require('firebase-admin');
 const { getAuth } = require('firebase/auth');
 
-// Initialize Firebase Admin with credentials from a local file
-admin.initializeApp({
-    credential: admin.credential.cert(require('../adminKey.json')),
-});
 
 const router = express.Router();
 
