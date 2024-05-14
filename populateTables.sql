@@ -25,76 +25,35 @@ ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;
 -- Insert data into tables in the correct order
 
 -- First, insert into Utilizador since other tables reference it
-INSERT INTO Utilizador
-    (nome, genero, data_nasc, morada, email, telemovel, ativo)
+-- Insert data into Utilizador
+INSERT INTO Utilizador (nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
+('John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
+('Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE);
+
+INSERT INTO PostoPolicia (morada) VALUES
+('987 Secondary St, Lisbon');
+
+INSERT INTO MembroPolicia (nome, posto_policia, historico_policia) VALUES
+('Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
+
+INSERT INTO Admin (nome, utilizador_id) VALUES
+('Admin Geral', 1);
+
+INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
+('Lost Wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
+('Lost Phone', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2);
+
+INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id) VALUES
+('Found Keychain', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1),
+('Found Laptop', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1);
+
+INSERT INTO Leilao
+    (objeto_achado_id, data_inicio, data_fim, localizacao, valor_base, ativo)
 VALUES
-    ('John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
-    ('Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE);
+    (1, '2024-02-01', '2024-03-01', 'Auction House, Main Street, Lisbon', 500.00, TRUE);
 
--- Then insert into PostoPolicia since MembroPolicia references it
-INSERT INTO PostoPolicia
-    (morada)
-VALUES
-    ('987 Secondary St, Lisbon');
+INSERT INTO Licitacao (leilao_id, utilizador_id, valor_licitacao) VALUES
+(1, 1, 50.00), (1, 2, 60.00);
 
--- Now, insert into MembroPolicia since ObjetoAchado references it
--- Assuming the posto_policia ID for '987 Secondary St, Lisbon' is 1
-INSERT INTO MembroPolicia
-    (nome, posto_policia, historico_policia)
-VALUES
-    ('Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
-
--- Insert into Admin, which references Utilizador
-INSERT INTO Admin
-    (nome, utilizador_id)
-VALUES
-    ('Admin Geral', 1);
-
-
--- Adiciona objetos perdidos à tabela ObjetoPerdido
-INSERT INTO ObjetoPerdido
-    (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id)
-VALUES
-    ('Lost Wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
-    ('Lost Phone', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2),
-    ('Carteira', 'Acessórios', '2024-04-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
-    ('Caneta', 'Material de Escritório', '2024-04-02', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2);
-
-
--- Adiciona objetos encontrados à tabela ObjetoAchado
-INSERT INTO ObjetoAchado
-    (descricao, categoria, data_achado, localizacao_achado, ativo, policial_id)
-VALUES
-    ('Found Keychain', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', TRUE, 1),
-    ('Found Laptop', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', TRUE, 1),
-    ('Carteira', 'Acessórios', '2024-04-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
-    ('Caneta', 'Material de Escritório', '2024-04-02', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 1),
-    ('Tablet', 'Eletrônicos', '2024-04-03', '{"latitude": 48.8566, "longitude": 2.3522}', TRUE, 1),
-    ('Óculos', 'Acessórios', '2024-04-04', '{"latitude": 34.0522, "longitude": -118.2437}', TRUE, 1),
-    ('Chaveiro', 'Acessórios', '2024-04-05', '{"latitude": 35.6895, "longitude": 139.6917}', TRUE, 1);
-
--- Populate ObjetoAchado
-INSERT INTO ObjetoAchado
-    (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id)
-VALUES
-    ('Found Keychain', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1),
-    ('Found Laptop', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1);
-
--- Assuming the IDs for the ObjetoAchado are 1 and 2 respectively
--- Populate Leilao
-INSERT INTO Licitacao
-    (leilao_id, utilizador_id, valor_licitacao)
-VALUES
-    (1, 1, 50.00),
-    (1, 2, 60.00);
-
--- Now, we can insert into Licitacao since it references Leilao and Utilizador
--- Assuming the IDs for the Leilao are 1 and 2 respectively
-
-
--- Finally, insert into Notificacao, which references Utilizador
-INSERT INTO Notificacao
-    (utilizador_id, mensagem, data)
-VALUES
-    (1, 'New auction available', '2023-06-01 10:00:00'),
-    (2, 'Item found matching your lost item description', '2023-06-02 15:30:00');
+INSERT INTO Notificacao (utilizador_id, mensagem, data) VALUES
+(1, 'New auction available', '2023-06-01 10:00:00'), (2, 'Item found matching your lost item description', '2023-06-02 15:30:00');
