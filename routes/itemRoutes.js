@@ -244,6 +244,39 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
   }
 });
 
+//Get all found items
+router.get('/found', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// Search for found items (RF-12)
+router.get('/found/search', isAuthenticated, async (req, res) => {
+  const { description } = req.query;
+
+  // Input validation and sanitization
+  if (!description) {
+    console.log('Description parameter is required');
+    return res.status(400).json({ error: 'Description parameter is required' });
+  }
+
+  const sanitizedDescription = sanitizeInput(description);
+
+  try {
+    const result = await pool.query('SELECT * FROM ObjetoAchado WHERE descricao ILIKE $1', [`%${sanitizedDescription}%`]);
+    console.log('Found items search result:', result.rows);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error searching found items:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Register delivery of a found item to its owner (RF-16)
 router.post('/found/:itemId/deliver', isAuthenticated, async (req, res) => {
