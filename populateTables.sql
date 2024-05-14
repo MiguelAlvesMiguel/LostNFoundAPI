@@ -20,9 +20,6 @@ ALTER SEQUENCE licitacao_id_seq RESTART WITH 1;
 ALTER SEQUENCE notificacao_id_seq RESTART WITH 1;
 ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;  -- Assuming this is the correct sequence name
 
-
-
-
 -- Insert data into tables in the correct order
 
 -- First, insert into Utilizador since other tables reference it
@@ -43,19 +40,18 @@ INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', 'user-12345');
 
 -- Then we can populate ObjetoPerdido
 INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
-('Lost Wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 'user-12345'),
-('Lost Phone', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 'user-12345');
+('Black leather wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 'user-12345'),
+('Samsung Galaxy S20', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 'user-12345');
 
 -- Populate ObjetoAchado
-INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id) VALUES
-('Found Keychain', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1),
-('Found Laptop', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1);
+INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES
+('Keychain with several keys', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
+('Apple MacBook Pro', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700');
 
 -- Assuming the IDs for the ObjetoAchado are 1 and 2 respectively
 -- Populate Leilao
 INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, valor_base, ativo) VALUES
-(2, '2023-05-10', '2023-05-20', 'Online',10.00,  TRUE);
-
+(2, '2023-05-10', '2023-05-20', 'Online', 10.00, TRUE);
 
 -- Now, we can insert into Licitacao since it references Leilao and Utilizador
 -- Assuming the IDs for the Leilao are 1 and 2 respectively
