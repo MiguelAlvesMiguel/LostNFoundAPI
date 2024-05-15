@@ -115,22 +115,24 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-// View past, active, and future auctions (RF-19)
 router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
   try {
-    let query = 'SELECT * FROM Leilao';
+    let query = `
+      SELECT le.*, oa.descricao, oa.imageurl, oa.titulo, le.valor_base
+      FROM Leilao le
+      JOIN ObjetoAchado oa ON le.objeto_achado_id = oa.id
+    `;
     const values = [];
 
     if (status) {
       if (status === 'active') {
-        query += ' WHERE data_inicio <= CURRENT_DATE AND data_fim >= CURRENT_DATE';
+        query += ' WHERE le.data_inicio <= CURRENT_DATE AND le.data_fim >= CURRENT_DATE';
       } else if (status === 'upcoming') {
-        query += ' WHERE data_inicio > CURRENT_DATE';
+        query += ' WHERE le.data_inicio > CURRENT_DATE';
       } else if (status === 'past') {
-        query += ' WHERE data_fim < CURRENT_DATE';
+        query += ' WHERE le.data_fim < CURRENT_DATE';
       } else {
         console.log('Invalid status parameter');
         return res.status(400).json({ error: 'Invalid status parameter' });
@@ -138,8 +140,14 @@ router.get('/auctions', async (req, res) => {
     }
 
     const result = await pool.query(query, values);
+    
+    const auctions = await Promise.all(result.rows.map(async auction => {
+      const bids = await pool.query('SELECT * FROM Licitacao WHERE leilao_id = $1 ORDER BY valor_licitacao DESC', [auction.id]);
+      return { ...auction, bids: bids.rows, valor_base: parseFloat(auction.valor_base) };
+    }));
+    
     console.log('Auctions retrieved successfully');
-    res.status(200).json(result.rows);
+    res.status(200).json(auctions);
   } catch (error) {
     console.error('Error retrieving auctions:', error);
     res.status(500).json({ error: 'Internal server error' });
