@@ -11,6 +11,7 @@ DELETE FROM PostoPolicia;
 DELETE FROM Utilizador;
 
 -- Reset sequences for all tables that have SERIAL primary key
+ALTER SEQUENCE utilizador_id_seq RESTART WITH 1;
 ALTER SEQUENCE postopolicia_id_seq RESTART WITH 1;
 ALTER SEQUENCE admin_adminid_seq RESTART WITH 1;
 ALTER SEQUENCE objetoperdido_id_seq RESTART WITH 1;
@@ -40,13 +41,19 @@ INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', 1);
 
 -- Then we can populate ObjetoPerdido
 INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
-('Lost Wallet', 'Black leather wallet', 'A black leather wallet containing multiple cards and some cash.', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
-('Lost Phone', 'Samsung Galaxy S20', 'A Samsung Galaxy S20 smartphone with a black case.', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2);
+('Lost Wallet', 'Black leather wallet', 'A black leather wallet containing multiple cards and some cash.', 'Personal Items', '2024-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
+('Lost Phone', 'Samsung Galaxy S20', 'A Samsung Galaxy S20 smartphone with a black case.', 'Electronics', '2024-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2),
+('Lost Watch', 'Black applewatch', 'A black applewatch with a black plastic band.', 'Accessories', '2024-01-15', '{"latitude": 40.730610, "longitude": -73.935242}', TRUE, 1),
+('Lost Backpack', 'Blue backpack', 'A blue backpack with multiple compartments, containing books and a laptop.', 'Bags', '2024-01-20', '{"latitude": 34.052235, "longitude": -118.243683}', TRUE, 2);
+
 
 --populate ObjetoAchado
 INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES
-('Found Keychain', 'Keychain with several keys', 'A keychain with several keys found near a park.', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
-('Found Laptop', 'Apple MacBook Pro', 'An Apple MacBook Pro found in a coffee shop.', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700');
+('Found Keychain', 'Keychain with several keys', 'A keychain with several keys found near a park.', 'Personal Items', '2024-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2024-06-02', TRUE, 10.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
+('Found Laptop', 'Apple MacBook Pro', 'An Apple MacBook Pro found in a coffee shop.', 'Electronics', '2024-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2024-06-06', FALSE, 2000.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
+('Found Watch', 'Black applewatch', 'A black applewatch with a black plastic band found near a park.', 'Accessories', '2024-01-16', '{"latitude": 40.730610, "longitude": -73.935242}', '2024-06-16', TRUE, 50.00, 1, 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Apple_Watch_Series_8_Midnight_Aluminium_Case.jpg/1200px-Apple_Watch_Series_8_Midnight_Aluminium_Case.jpg'),
+('Found Backpack', 'Blue backpack', 'A blue backpack with multiple compartments found in a library.', 'Bags', '2024-01-28', '{"latitude": 34.052235, "longitude": -118.243683}', '2024-06-21', TRUE, 100.00, 1, 'https://www.thule.com/-/p/z0NmKpVcbr63LZtQKChfJ_NA3cVhCISBmMx2CArJ2_4/rs:fit/h:991/cb:1.4/w:991/plain/approved/std.lang.all/18/04/1381804.png');
+
 
 -- Assuming the IDs for the ObjetoAchado are 1 and 2 respectively
 -- Populate Leilao

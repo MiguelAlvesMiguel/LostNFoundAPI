@@ -7,13 +7,9 @@ const moment = require('moment');
 const router = express.Router();
 const admin = require('firebase-admin');
 
-admin.initializeApp({
-    credential: admin.credential.cert(require('../adminKey.json')),
-  });
-
 
  //get reports of lost and found items
- router.get('/reports/items', async (req, res) => {
+ router.get('/items', async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Validate date format
@@ -30,7 +26,7 @@ admin.initializeApp({
         // Querying the database to get the lost and found items between the start and end date
         const [resultObjectsLost, resultObjectsFound] = await Promise.all([
             pool.query('SELECT * FROM objetoperdido WHERE data_perdido BETWEEN $1 AND $2', [startDate, endDate]),
-            pool.query('SELECT * FROM objetorecuperado WHERE data_achado BETWEEN $1 AND $2', [startDate, endDate])
+            pool.query('SELECT * FROM objetoachado WHERE data_achado BETWEEN $1 AND $2', [startDate, endDate])
         ]);
 
         // Check if the results are not empty and send them as a response
@@ -42,13 +38,17 @@ admin.initializeApp({
         // Create an empty array to store matched lost and found items
         let lost_and_found_items = [];
 
+        //create variable to store number of found items
+        let foundItems = 0;
+
         // Iterate over each lost item
         resultObjectsLost.rows.forEach(lostItem => {
             const foundMatch = resultObjectsFound.rows.find(foundItem => 
-                lostItem.descricao.toLowerCase() === foundItem.descricao.toLowerCase() && 
+                lostItem.descricao_curta.toLowerCase() === foundItem.descricao_curta.toLowerCase() && 
                 lostItem.categoria.toLowerCase() === foundItem.categoria.toLowerCase() &&
-                lostItem.localizacao_perdido.toLowerCase() === foundItem.localizacao_achado.toLowerCase()
-            )
+                lostItem.localizacao_perdido.latitude === foundItem.localizacao_achado.latitude &&
+                lostItem.localizacao_perdido.longitude === foundItem.localizacao_achado.longitude
+            );
              // If a match is found, push the combined information to the lost_and_found_items array
         if (foundMatch) {
             lost_and_found_items.push({
@@ -56,6 +56,8 @@ admin.initializeApp({
                 encontrado: true,
                 foundItem: foundMatch // Save the entire found item object, or just the relevant info
             });
+            //increment the foundItems variable
+            foundItems++;
         } else {
             // If no match is found, still include the lost item, but indicate it hasn't been found
             lost_and_found_items.push({
@@ -68,7 +70,7 @@ admin.initializeApp({
 
         // Compute statistics
         let totalLost = resultObjectsLost.rows.length;
-        let totalFound = resultObjectsFound.rows.length;
+        let totalFound = foundItems;
         let lostToFoundRatio = totalFound > 0 ? (totalLost / totalFound) : 0; // Avoid division by zero. condition ? value_if_true : value_if_false
 
         // Calculate average time to find an item
@@ -102,7 +104,7 @@ admin.initializeApp({
     }
 });
 
-app.get('/reports/auctions', async (req, res) => {
+router.get('/auctions', async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Validate date format
@@ -149,7 +151,7 @@ app.get('/reports/auctions', async (req, res) => {
 });
 
 // Get user activity report
-app.get('/reports/user-activity/:userId', async (req, res) => {
+router.get('/user-activity/:userId', async (req, res) => {
     const userId = parseInt(req.params.userId);
     //validate user ID format 
     if (isNaN(userId)) {
