@@ -24,8 +24,8 @@ ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;  -- Assuming this is the cor
 
 -- First, insert into Utilizador since other tables reference it
 INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
-('user-12345', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
-('6f5f90c34KUCXNxzd3hEMY6OBSs2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE);
+('John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
+('Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE);
 
 -- Then insert into PostoPolicia since MembroPolicia references it
 INSERT INTO PostoPolicia (morada) VALUES ('987 Secondary St, Lisbon');
@@ -36,12 +36,12 @@ INSERT INTO MembroPolicia (nome, posto_policia, historico_policia) VALUES
 ('Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
 
 -- Insert into Admin, which references Utilizador
-INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', 'user-12345');
+INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', 1);
 
 -- Then we can populate ObjetoPerdido
 INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
-('Black leather wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 'user-12345'),
-('Samsung Galaxy S20', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 'user-12345');
+('Black leather wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
+('Samsung Galaxy S20', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2);
 
 -- Populate ObjetoAchado
 INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES
@@ -56,9 +56,9 @@ INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, valor_
 -- Now, we can insert into Licitacao since it references Leilao and Utilizador
 -- Assuming the IDs for the Leilao are 1 and 2 respectively
 INSERT INTO Licitacao (leilao_id, utilizador_id, valor_licitacao) VALUES
-(1, 'user-12345', 50.00);
+(1, 1, 50.00);
 
 -- Finally, insert into Notificacao, which references Utilizador
 INSERT INTO Notificacao (utilizador_id, mensagem, data) VALUES
-('user-12345', 'New auction available', '2023-06-01 10:00:00'),
-('6f5f90c34KUCXNxzd3hEMY6OBSs2', 'Item found matching your lost item description', '2023-06-02 15:30:00');
+(1, 'New auction available', '2023-06-01 10:00:00'),
+(2, 'Item found matching your lost item description', '2023-06-02 15:30:00');

@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS Utilizador;
 
 -- Create tables
 CREATE TABLE Utilizador (
-    ID VARCHAR(255) PRIMARY KEY,
+    ID SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     genero VARCHAR(50) NOT NULL,
     data_nasc DATE NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE MembroPolicia (
 CREATE TABLE Admin (
     adminId SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
-    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
+    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
 );
 
 CREATE TABLE ObjetoPerdido (
@@ -49,7 +49,7 @@ CREATE TABLE ObjetoPerdido (
     data_perdido DATE NOT NULL,
     localizacao_perdido JSONB NOT NULL,
     ativo BOOLEAN NOT NULL,
-    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
+    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
 );
 
 CREATE TABLE ObjetoAchado (
@@ -80,13 +80,13 @@ CREATE TABLE Leilao (
 CREATE TABLE Licitacao (
     ID SERIAL PRIMARY KEY,
     leilao_id INT NOT NULL REFERENCES Leilao(ID) ON DELETE CASCADE,
-    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE,
+    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE,
     valor_licitacao DECIMAL(10, 2) NOT NULL
 );
 
 CREATE TABLE Notificacao (
     ID SERIAL PRIMARY KEY,
-    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE,
+    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE,
     mensagem TEXT NOT NULL,
     data TIMESTAMP NOT NULL
 );
