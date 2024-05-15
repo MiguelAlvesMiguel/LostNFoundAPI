@@ -23,7 +23,7 @@ ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;  -- Assuming this is the cor
 -- Insert data into tables in the correct order
 
 -- First, insert into Utilizador since other tables reference it
-INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
+INSERT INTO Utilizador (nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
 ('John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
 ('Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE);
 
@@ -39,14 +39,14 @@ INSERT INTO MembroPolicia (nome, posto_policia, historico_policia) VALUES
 INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', 1);
 
 -- Then we can populate ObjetoPerdido
-INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
-('Black leather wallet', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
-('Samsung Galaxy S20', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2);
+INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
+('Lost Wallet', 'Black leather wallet', 'A black leather wallet containing multiple cards and some cash.', 'Personal Items', '2023-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
+('Lost Phone', 'Samsung Galaxy S20', 'A Samsung Galaxy S20 smartphone with a black case.', 'Electronics', '2023-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2);
 
--- Populate ObjetoAchado
-INSERT INTO ObjetoAchado (descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES
-('Keychain with several keys', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
-('Apple MacBook Pro', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700');
+--populate ObjetoAchado
+INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES
+('Found Keychain', 'Keychain with several keys', 'A keychain with several keys found near a park.', 'Personal Items', '2023-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2023-06-02', TRUE, 10.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
+('Found Laptop', 'Apple MacBook Pro', 'An Apple MacBook Pro found in a coffee shop.', 'Electronics', '2023-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2023-06-06', FALSE, 2000.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700');
 
 -- Assuming the IDs for the ObjetoAchado are 1 and 2 respectively
 -- Populate Leilao
