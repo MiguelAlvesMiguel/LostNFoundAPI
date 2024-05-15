@@ -117,7 +117,7 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
 });
 
 // View past, active, and future auctions (RF-19)
-router.get('/auctions', isAuthenticated, async (req, res) => {
+router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
   try {
