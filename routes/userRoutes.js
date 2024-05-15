@@ -13,7 +13,12 @@
     issuerBaseURL: 'https://dev-wtrodgpp1u52blif.us.auth0.com/',
     tokenSigningAlg: 'RS256'
   });
-
+  
+  router.get('/', (req, res) => {
+    console.log('GET /v1/users');
+    res.status(200).json({ message: 'Users endpoint working!' });
+  });
+  
 
   router.post('/register', async (req, res) => {
     const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
