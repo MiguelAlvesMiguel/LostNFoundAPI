@@ -7,7 +7,7 @@ const { getAuth } = require('firebase/auth');
 const router = express.Router();
 
 // Define the PUT endpoint to claim a found item
-router.put('/police/items/:itemId/claim', async (req, res) => {
+router.put('/items/:itemId/claim', async (req, res) => {
   const itemId = parseInt(req.params.itemId);
   const claimantId = req.body.claimantId;
 
@@ -45,7 +45,7 @@ router.put('/police/items/:itemId/claim', async (req, res) => {
 });
 
 // Define the POST endpoint to register a found item
-router.post('/police/items/found/register', async (req, res) => {
+router.post('/items/found/register', async (req, res) => {
   // Extract details from the request body
   const { descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id } = req.body;
 
@@ -79,7 +79,7 @@ router.post('/police/items/found/register', async (req, res) => {
   });
 
 // Define the POST endpoint to register a new police member
-router.post('/police/members', async (req, res) => {
+router.post('/members', async (req, res) => {
   // Extract the relevant fields from the request body
   const { nome, posto_policia, historico_policia } = req.body;
 
@@ -113,7 +113,7 @@ router.post('/police/members', async (req, res) => {
 });
 
 // Define the POST endpoint to register a new police post
-router.post('/police/posts', async (req, res) => {
+router.post('/posts', async (req, res) => {
   // Extract the relevant field from the request body
   const { morada } = req.body;
 
