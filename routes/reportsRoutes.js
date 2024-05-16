@@ -157,6 +157,7 @@ router.get('/user-activity/:userId', async (req, res) => {
     if (isNaN(userId)) {
         return res.status(400).send('Invalid user ID format. User ID must be an integer.');
     }
+
     try {
         // Check if user exists in the database
         const userExistResult = await pool.query(`
@@ -172,9 +173,16 @@ router.get('/user-activity/:userId', async (req, res) => {
          // Query to count total lost items by user
          const lostItemsResult = await pool.query(`
             SELECT COUNT(*) AS totalItemsLost
-            FROM objeto_perdido
+            FROM objetoperdido
             WHERE utilizador_id = $1 AND ativo = TRUE
             `, [userId]);
+        
+        // Access the totalItemsLost value from the query result
+        const totalItemsLost = lostItemsResult.rows[0].totalitemslost;
+
+        // Log the result to the console
+        console.log(totalItemsLost);
+    
 
         // Query to count auctions participated by the user
         const auctionsParticipatedResult = await pool.query(`
@@ -183,10 +191,11 @@ router.get('/user-activity/:userId', async (req, res) => {
             WHERE utilizador_id = $1
             `, [userId]);
         
+        const auctionsParticipated = auctionsParticipatedResult.rows[0].auctionsparticipated;
         // Prepare the response object
         const response = {
-            totalItemsLost: parseInt(lostItemsResult.rows[0].totalItemsLost),
-            auctionsParticipated: parseInt(auctionsParticipatedResult.rows[0].auctionsParticipated)
+            totalItemsLost: parseInt(totalItemsLost),
+            auctionsParticipated: parseInt(auctionsParticipated)
         };
 
         // Send the successful response with the result
