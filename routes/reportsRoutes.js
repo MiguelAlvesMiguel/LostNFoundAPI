@@ -180,10 +180,6 @@ router.get('/user-activity/:userId', async (req, res) => {
         // Access the totalItemsLost value from the query result
         const totalItemsLost = lostItemsResult.rows[0].totalitemslost;
 
-        // Log the result to the console
-        console.log(totalItemsLost);
-    
-
         // Query to count auctions participated by the user
         const auctionsParticipatedResult = await pool.query(`
             SELECT COUNT(DISTINCT leilao_id) AS auctionsParticipated
