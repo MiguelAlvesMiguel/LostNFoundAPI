@@ -1,8 +1,9 @@
+// routes/policeRoutes.js
 const express = require('express');
 const pool = require('../db'); // Assuming this is your configured PostgreSQL connection pool
-const admin = require('firebase-admin');
+const policeAuthMiddleware = require('../middlewares/policeAuth');
+const admin = require('../middlewares/firebaseAdmin');
 const { getAuth } = require('firebase/auth');
-
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ const sanitizeInput = (input) => {
 };
 
 // Define the PUT endpoint to claim a found item
-router.put('/items/:itemId/claim', async (req, res) => {
+router.put('/items/:itemId/claim', policeAuthMiddleware, async (req, res) => {
   const itemId = parseInt(req.params.itemId);
   const claimantId = parseInt(req.query.claimantId);
 
@@ -55,9 +56,26 @@ router.put('/items/:itemId/claim', async (req, res) => {
   }
 });
 
+// Get all found items 
+router.get('/items/found', policeAuthMiddleware, async (req, res) => {
+  
+  try {
+    const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
+    //log successful query if no error is thrown
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'No found items available' });
+    }
+    else console.log('Get all found items Query successful');
+    res.json(rows);
 
-// Define the POST endpoint to register a found item
-router.post('/items/found/register', async (req, res) => {
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Define the POST endpoint to register a found item (protected route)
+router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   // Extract details from the request body
   const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id } = req.body;
 
@@ -114,9 +132,8 @@ router.post('/items/found/register', async (req, res) => {
   }
 });
 
-
-// Define the POST endpoint to register a new police member
-router.post('/members', async (req, res) => {
+// Define the POST endpoint to register a new police member (protected route)
+router.post('/members', policeAuthMiddleware, async (req, res) => {
   // Extract the relevant fields from the request body
   const { nome, posto_policia, historico_policia } = req.body;
 
@@ -167,9 +184,8 @@ router.post('/members', async (req, res) => {
   }
 });
 
-
-// Define the POST endpoint to register a new police post
-router.post('/posts', async (req, res) => {
+// Define the POST endpoint to register a new police post (protected route)
+router.post('/posts', policeAuthMiddleware, async (req, res) => {
   // Extract the relevant field from the request body
   const { morada } = req.body;
 

@@ -2,7 +2,7 @@ const express = require('express');
 const pool = require('../db');
 const { getAuth } = require('firebase/auth');
 const router = express.Router();
-const admin = require('firebase-admin');
+const admin = require('../middlewares/firebaseAdmin');
 
 
 const isAuthenticated = async (req, res, next) => {
@@ -244,50 +244,6 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
   }
 });
 
-//Get all found items
-router.get('/found', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
-    res.json(rows);
-  } catch (error) {
-    console.error('Error executing query', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Register a found item (RF-06)
-router.post('/found', isAuthenticated, async (req, res) => {
-  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL } = req.body;
-
-  // Input validation and sanitization
-  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || ativo === undefined || !policial_id) {
-    console.log('Invalid input data');
-    return res.status(400).json({ error: 'Invalid input data' });
-  }
-
-  const sanitizedTitulo = sanitizeInput(titulo);
-  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
-  const sanitizedDescricao = sanitizeInput(descricao);
-  const sanitizedCategoria = sanitizeInput(categoria);
-  const sanitizedLocalizacao = {
-    latitude: sanitizeInput(localizacao_achado.latitude.toString()),
-    longitude: sanitizeInput(localizacao_achado.longitude.toString()),
-  };
-  const sanitizedImageURL = imageURL ? sanitizeInput(imageURL) : null;
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING ID',
-      [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, data_achado, JSON.stringify(sanitizedLocalizacao), data_limite, ativo, valor_monetario, policial_id, sanitizedImageURL]
-    );
-    const itemId = result.rows[0].id;
-    console.log('Found item registered successfully with ID:', itemId);
-    res.status(201).json({ message: 'Found item registered successfully', itemId });
-  } catch (error) {
-    console.error('Error registering found item:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // Get found item by id
 router.get('/lost/:itemId', async (req, res) => {
