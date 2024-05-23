@@ -7,6 +7,10 @@ const moment = require('moment');
 const router = express.Router();
 const admin = require('firebase-admin');
 
+// Sanitize input data
+const sanitizeInput = (input) => {
+    return input.replace(/[^a-zA-Z0-9\s]/g, '');
+  };
 
  //get reports of lost and found items
  router.get('/items', async (req, res) => {
@@ -152,42 +156,38 @@ router.get('/auctions', async (req, res) => {
 
 // Get user activity report
 router.get('/user-activity/:userId', async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    //validate user ID format 
-    if (isNaN(userId)) {
-        return res.status(400).send('Invalid user ID format. User ID must be an integer.');
-    }
-
+    const sanitizedUserId = sanitizeInput(req.params.userId);
     try {
         // Check if user exists in the database
         const userExistResult = await pool.query(`
-            SELECT COUNT(*) AS userExists
+            SELECT COUNT(*) AS "userExists"
             FROM utilizador
-            WHERE id = $1 AND ativo = TRUE
-            `, [userId]);
+            WHERE firebase_uid = $1 AND ativo = TRUE
+            `, [sanitizedUserId]);
 
-        if (userExistResult.rows[0].userExists === 0) {
+        if (parseInt(userExistResult.rows[0].userExists) === 0) {
             return res.status(404).send('User not found or inactive.');
         }
 
-         // Query to count total lost items by user
-         const lostItemsResult = await pool.query(`
-            SELECT COUNT(*) AS totalItemsLost
+        // Query to count total lost items by user
+        const lostItemsResult = await pool.query(`
+            SELECT COUNT(*) AS "totalItemsLost"
             FROM objetoperdido
             WHERE utilizador_id = $1 AND ativo = TRUE
-            `, [userId]);
-        
+            `, [sanitizedUserId]);
+
         // Access the totalItemsLost value from the query result
-        const totalItemsLost = lostItemsResult.rows[0].totalitemslost;
+        const totalItemsLost = lostItemsResult.rows[0].totalItemsLost;
 
         // Query to count auctions participated by the user
         const auctionsParticipatedResult = await pool.query(`
-            SELECT COUNT(DISTINCT leilao_id) AS auctionsParticipated
+            SELECT COUNT(DISTINCT leilao_id) AS "auctionsParticipated"
             FROM licitacao
             WHERE utilizador_id = $1
-            `, [userId]);
-        
-        const auctionsParticipated = auctionsParticipatedResult.rows[0].auctionsparticipated;
+            `, [sanitizedUserId]);
+
+        const auctionsParticipated = auctionsParticipatedResult.rows[0].auctionsParticipated;
+
         // Prepare the response object
         const response = {
             totalItemsLost: parseInt(totalItemsLost),
@@ -202,6 +202,7 @@ router.get('/user-activity/:userId', async (req, res) => {
         res.status(500).send('Internal server error');
     }
 });
+
 
 
 

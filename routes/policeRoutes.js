@@ -14,19 +14,25 @@ const sanitizeInput = (input) => {
 // Define the PUT endpoint to claim a found item
 router.put('/items/:itemId/claim', async (req, res) => {
   const itemId = parseInt(req.params.itemId);
-  const claimantId = parseInt(req.query.claimantId);
+  const claimantId = req.query.claimantId;
 
   // Validate that itemId and claimantId are valid integers
-  if (isNaN(itemId) || isNaN(claimantId)) {
-    return res.status(400).send({ error: 'Invalid itemId or claimantId, must be integers' });
+  if (isNaN(itemId)) {
+    return res.status(400).send({ error: 'Invalid itemId, must be integer' });
   }
+
+  if (!claimantId) {
+    return res.status(400).send({ error: 'claimantId missing' });
+  }
+  
+  const sanitizedClaimantId = sanitizeInput(claimantId);
 
   try {
     // Begin transaction
     await pool.query('BEGIN');
 
     // Check if the claimant exists
-    const checkClaimant = await pool.query('SELECT id FROM utilizador WHERE id = $1', [claimantId]);
+    const checkClaimant = await pool.query('SELECT firebase_uid FROM utilizador WHERE firebase_uid = $1', [sanitizedClaimantId]);
     if (checkClaimant.rowCount === 0) {
       await pool.query('ROLLBACK');
       return res.status(404).send('Claimant not found');
