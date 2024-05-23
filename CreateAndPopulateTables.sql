@@ -29,7 +29,7 @@ CREATE TABLE PostoPolicia (
 
 CREATE TABLE MembroPolicia (
     ID SERIAL PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
+    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
     posto_policia INT NOT NULL REFERENCES PostoPolicia(ID),
     historico_policia JSONB
 );
@@ -44,9 +44,7 @@ CREATE TABLE ObjetoPerdido (
     ID SERIAL PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
     descricao_curta TEXT NOT NULL,
-    descricao TEXT NOT
-
-NULL,
+    descricao TEXT NOT NULL,
     categoria VARCHAR(255) NOT NULL,
     data_perdido DATE NOT NULL,
     localizacao_perdido JSONB NOT NULL,
@@ -81,18 +79,16 @@ CREATE TABLE Leilao (
 
 CREATE TABLE Licitacao (
     ID SERIAL PRIMARY KEY,
-    leilao_id INT NOT NULL REFERENCES Leilao(ID) ON DELETE
-
-CASCADE,
-utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
-valor_licitacao DECIMAL(10, 2) NOT NULL
+    leilao_id INT NOT NULL REFERENCES Leilao(ID) ON DELETE CASCADE,
+    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
+    valor_licitacao DECIMAL(10, 2) NOT NULL
 );
 
 CREATE TABLE Notificacao (
-ID SERIAL PRIMARY KEY,
-utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
-mensagem TEXT NOT NULL,
-data TIMESTAMP NOT NULL
+    ID SERIAL PRIMARY KEY,
+    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
+    mensagem TEXT NOT NULL,
+    data TIMESTAMP NOT NULL
 );
 
 -- Delete all rows from the tables, respecting the foreign key constraints
@@ -120,7 +116,8 @@ ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;
 
 -- First, insert into Utilizador since other tables reference it
 INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
-('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
+('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'hmmsm@example.com', '+351 912 345 678', TRUE),
+('bofinha1', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon','aa@gmail.com', '+351 923 456 789', TRUE),
 ('uid2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE),
 ('uid3', 'Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE),
 ('uid4', 'Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE);
@@ -128,9 +125,11 @@ INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, te
 -- Then insert into PostoPolicia since MembroPolicia references it
 INSERT INTO PostoPolicia (morada) VALUES ('987 Secondary St, Lisbon');
 
--- Now, insert into MembroPolicia since ObjetoAchado references it
+-- Now, insert into MembroPolicia
 -- Assuming the posto_policia ID for '987 Secondary St, Lisbon' is 1
-INSERT INTO MembroPolicia (nome, posto_policia, historico_policia) VALUES ('Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
+INSERT INTO MembroPolicia (utilizador_id, posto_policia, historico_policia) 
+VALUES 
+('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
 
 -- Insert into Admin, which references Utilizador
 INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', '1MJlbIhHHMPOMgxzUgjx35Ijq9D3');
