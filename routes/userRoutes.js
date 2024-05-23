@@ -1,111 +1,81 @@
-  const express = require('express');
-  const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
-  const pool = require('../db');
-  const auth0Config = require('../Auth0Config');
+// routes/userRoutes.js
+const express = require('express');
+const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
+const firebaseApp = require('../FirebaseConfig'); // Correct path to your firebaseClient.js
+const pool = require('../db');
+const auth0Config = require('../Auth0Config');
+const axios = require('axios');
+const router = express.Router();
 
-  const { auth } = require('express-oauth2-jwt-bearer');
-  const jwksRsa = require('jwks-rsa');
-  const axios = require('axios');
-  const router = express.Router();
+const firebaseAuthMiddleware = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 
-  const firebaseAuthMiddleware = async (req, res, next) => {
-    const idToken = req.headers.authorization?.split('Bearer ')[1];
-    if (!idToken) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      req.user = decodedToken;
-      next();
-    } catch (error) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-  };
-  
-  const jwtCheck = auth({
-    audience: 'http://localhost:3003',
-    issuerBaseURL: 'https://dev-wtrodgpp1u52blif.us.auth0.com/',
-    tokenSigningAlg: 'RS256'
-  });
-  
-  router.get('/', (req, res) => {
-    console.log('GET /v1/users');
-    res.status(200).json({ message: 'Users endpoint working!' });
-  });
-  
+const auth = getAuth(firebaseApp); // Get the Auth instance using the initialized Firebase App
 
-  router.post('/register', async (req, res) => {
-    const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
-  
-    try {
-      const auth = getAuth();
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-  
-      // Insert the new user into the Utilizador table with the firebase_uid as the primary key
-      await pool.query(
-        'INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
-      );
-  
-      // Issue an Auth0 access token
-      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-        grant_type: 'client_credentials',
-        client_id: auth0Config.clientId,
-        client_secret: auth0Config.clientSecret,
-        audience: auth0Config.audience
-      });
-  
-      const accessToken = tokenResponse.data.access_token;
-  
-      res.status(201).json({ message: 'User registered successfully!', user, accessToken });
-  
-    } catch (error) {
-      console.error('Error registering user:', error);
-      res.status(400).json({ error: error.message });
-    }
-  });
+router.get('/', (req, res) => {
+  console.log('GET /v1/users');
+  res.status(200).json({ message: 'Users endpoint working!' });
+});
 
-  router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-  
-    try {
-      const auth = getAuth();
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-  
-      // Issue an Auth0 access token
-      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-        grant_type: 'client_credentials',
-        client_id: auth0Config.clientId,
-        client_secret: auth0Config.clientSecret,
-        audience: auth0Config.audience
-      });
-  
-      const accessToken = tokenResponse.data.access_token;
-      console.log('User logged in successfully:', user);
-      res.status(200).json({ message: 'User logged in successfully', user, accessToken });
-  
-    } catch (error) {
-      console.error('Error logging in user:', error);
-      res.status(401).json({ error: error.message });
-    }
-  });
+router.post('/register', async (req, res) => {
+  const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
-// Google sign-in endpoint
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    await pool.query(
+      'INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
+    );
+
+    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+      grant_type: 'client_credentials',
+      client_id: auth0Config.clientId,
+      client_secret: auth0Config.clientSecret,
+      audience: auth0Config.audience
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+
+    res.status(201).json({ message: 'User registered successfully!', user, accessToken });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+      grant_type: 'client_credentials',
+      client_id: auth0Config.clientId,
+      client_secret: auth0Config.clientSecret,
+      audience: auth0Config.audience
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+    console.log('User logged in successfully:', user);
+    res.status(200).json({ message: 'User logged in successfully', user, accessToken });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(401).json({ error: error.message });
+  }
+});
+
 router.post('/google-signin', async (req, res) => {
   try {
-    const auth = getAuth();  // Get the auth instance at request time
     const provider = new GoogleAuthProvider();
-
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    // Check if this user is already in the database
     const { rows } = await pool.query('SELECT * FROM Utilizador WHERE ID = $1', [user.uid]);
     if (rows.length === 0) {
-      // Insert the new user into the Utilizador table
       await pool.query(
         'INSERT INTO Utilizador (ID, nome, email, ativo) VALUES ($1, $2, $3, $4)',
         [user.uid, user.displayName || 'Anonymous', user.email, true]
@@ -119,7 +89,30 @@ router.post('/google-signin', async (req, res) => {
   }
 });
 
-router.put('/me', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
+// Use FirebaseAuthMiddleware for Firebase tokens
+router.get('/me', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
+
+  try {
+    const result = await pool.query('SELECT * FROM Utilizador WHERE firebase_uid = $1', [firebase_uid]);
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(200).json(result.rows[0]);
+    }
+  } catch (error) {
+    console.error('Error retrieving user details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Example route using Auth0 JWT Check Middleware
+router.get('/auth0-example', jwtCheck, async (req, res) => {
+  res.status(200).json({ message: 'Auth0 token is valid' });
+});
+
+router.put('/me', firebaseAuthMiddleware, async (req, res) => {
   const { nome, genero, data_nasc, morada, telemovel, historico, ativo } = req.body;
   const firebase_uid = req.user.uid;
 
@@ -140,7 +133,7 @@ router.put('/me', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
   }
 });
 
-router.delete('/me', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
+router.delete('/me', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {
@@ -156,7 +149,8 @@ router.delete('/me', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-router.get('/me/notifications', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
+
+router.get('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {
@@ -172,7 +166,7 @@ router.get('/me/notifications', [jwtCheck, firebaseAuthMiddleware], async (req, 
   }
 });
 
-router.post('/me/notifications', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
+router.post('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
   const { message } = req.body;
 
@@ -193,7 +187,7 @@ router.post('/me/notifications', [jwtCheck, firebaseAuthMiddleware], async (req,
   }
 });
 
-router.put('/me/status', [jwtCheck, firebaseAuthMiddleware], async (req, res) => {
+router.put('/me/status', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
   const { status } = req.body;
 
@@ -214,17 +208,37 @@ router.put('/me/status', [jwtCheck, firebaseAuthMiddleware], async (req, res) =>
   }
 });
 
-// Logout user with firebase
 router.post('/logout', async (req, res) => {
-  const auth = getAuth();  // Get the auth instance at request time
   await auth.signOut();
 
-  // Return a success message if the sign-out was successful
   if (auth.currentUser) {
     return res.status(500).json({ error: 'Error logging out' });
   }
 
   res.status(200).json({ message: 'Logout successful' });
 });
+
+
+router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
+  const firebase_uid = req.user.uid;
+
+  try {
+    const result = await pool.query(`
+      SELECT ID, titulo, descricao_curta, data_perdido
+      FROM ObjetoPerdido
+      WHERE utilizador_id = $1
+    `, [firebase_uid]);
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'No lost items found for this user' });
+    } else {
+      res.status(200).json(result.rows);
+    }
+  } catch (error) {
+    console.error('Error retrieving lost items:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;

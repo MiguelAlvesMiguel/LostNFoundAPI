@@ -4,9 +4,6 @@ const { getAuth } = require('firebase/auth');
 const router = express.Router();
 const admin = require('firebase-admin');
 
-admin.initializeApp({
-  credential: admin.credential.cert(require('../adminKey.json')),
-});
 
 const isAuthenticated = async (req, res, next) => {
   try {

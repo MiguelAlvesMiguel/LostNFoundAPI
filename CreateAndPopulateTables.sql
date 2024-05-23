@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS Utilizador;
 
 -- Create tables
 CREATE TABLE Utilizador (
-    ID SERIAL PRIMARY KEY,
+    firebase_uid VARCHAR(255) PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     genero VARCHAR(50) NOT NULL,
     data_nasc DATE NOT NULL,
@@ -37,19 +37,21 @@ CREATE TABLE MembroPolicia (
 CREATE TABLE Admin (
     adminId SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
-    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
+    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE
 );
 
 CREATE TABLE ObjetoPerdido (
     ID SERIAL PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
     descricao_curta TEXT NOT NULL,
-    descricao TEXT NOT NULL,
+    descricao TEXT NOT
+
+NULL,
     categoria VARCHAR(255) NOT NULL,
     data_perdido DATE NOT NULL,
     localizacao_perdido JSONB NOT NULL,
     ativo BOOLEAN NOT NULL,
-    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE
+    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE
 );
 
 CREATE TABLE ObjetoAchado (
@@ -79,20 +81,21 @@ CREATE TABLE Leilao (
 
 CREATE TABLE Licitacao (
     ID SERIAL PRIMARY KEY,
-    leilao_id INT NOT NULL REFERENCES Leilao(ID) ON DELETE CASCADE,
-    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE,
-    valor_licitacao DECIMAL(10, 2) NOT NULL
+    leilao_id INT NOT NULL REFERENCES Leilao(ID) ON DELETE
+
+CASCADE,
+utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
+valor_licitacao DECIMAL(10, 2) NOT NULL
 );
 
 CREATE TABLE Notificacao (
-    ID SERIAL PRIMARY KEY,
-    utilizador_id INT NOT NULL REFERENCES Utilizador(ID) ON DELETE CASCADE,
-    mensagem TEXT NOT NULL,
-    data TIMESTAMP NOT NULL
+ID SERIAL PRIMARY KEY,
+utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
+mensagem TEXT NOT NULL,
+data TIMESTAMP NOT NULL
 );
 
 -- Delete all rows from the tables, respecting the foreign key constraints
--- Start with the tables that don't reference other tables, or that are only referenced by others.
 DELETE FROM Licitacao;
 DELETE FROM Notificacao;
 DELETE FROM Leilao;
@@ -104,7 +107,6 @@ DELETE FROM PostoPolicia;
 DELETE FROM Utilizador;
 
 -- Reset sequences for all tables that have SERIAL primary key
-ALTER SEQUENCE utilizador_id_seq RESTART WITH 1;
 ALTER SEQUENCE postopolicia_id_seq RESTART WITH 1;
 ALTER SEQUENCE admin_adminid_seq RESTART WITH 1;
 ALTER SEQUENCE objetoperdido_id_seq RESTART WITH 1;
@@ -117,39 +119,28 @@ ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;
 -- Insert data into tables in the correct order
 
 -- First, insert into Utilizador since other tables reference it
-INSERT INTO Utilizador (nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
-('John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
-('Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE),
-('Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE),
-('Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE);
+INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
+('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'john.doe@example.com', '+351 912 345 678', TRUE),
+('uid2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE),
+('uid3', 'Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE),
+('uid4', 'Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE);
 
 -- Then insert into PostoPolicia since MembroPolicia references it
-INSERT INTO PostoPolicia
-    (morada)
-VALUES
-    ('987 Secondary St, Lisbon');
+INSERT INTO PostoPolicia (morada) VALUES ('987 Secondary St, Lisbon');
 
 -- Now, insert into MembroPolicia since ObjetoAchado references it
 -- Assuming the posto_policia ID for '987 Secondary St, Lisbon' is 1
-INSERT INTO MembroPolicia
-    (nome, posto_policia, historico_policia)
-VALUES
-    ('Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
+INSERT INTO MembroPolicia (nome, posto_policia, historico_policia) VALUES ('Officer Miguel', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
 
 -- Insert into Admin, which references Utilizador
-INSERT INTO Admin
-    (nome, utilizador_id)
-VALUES
-    ('Admin Geral', 1);
+INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', '1MJlbIhHHMPOMgxzUgjx35Ijq9D3');
 
 -- Then we can populate ObjetoPerdido
-INSERT INTO ObjetoPerdido
-    (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id)
-VALUES
-    ('Lost Wallet', 'Black leather wallet', 'A black leather wallet containing multiple cards and some cash.', 'Personal Items', '2024-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, 1),
-    ('Lost Phone', 'Samsung Galaxy S20', 'A Samsung Galaxy S20 smartphone with a black case.', 'Electronics', '2024-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 2),
-    ('Lost Watch', 'Black applewatch', 'A black applewatch with a black plastic band.', 'Accessories', '2024-01-15', '{"latitude": 40.730610, "longitude": -73.935242}', TRUE, 1),
-    ('Lost Backpack', 'Blue backpack', 'A blue backpack with multiple compartments, containing books and a laptop.', 'Bags', '2024-01-20', '{"latitude": 34.052235, "longitude": -118.243683}', TRUE, 2);
+INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
+('Lost Wallet', 'Black leather wallet', 'A black leather wallet containing multiple cards and some cash.', 'Personal Items', '2024-05-01', '{"latitude": 40.7128, "longitude": -74.0060}', TRUE, '1MJlbIhHHMPOMgxzUgjx35Ijq9D3'),
+('Lost Phone', 'Samsung Galaxy S20', 'A Samsung Galaxy S20 smartphone with a black case.', 'Electronics', '2024-05-05', '{"latitude": 51.5074, "longitude": -0.1278}', TRUE, 'uid2'),
+('Lost Watch', 'Black applewatch', 'A black applewatch with a black plastic band.', 'Accessories', '2024-01-15', '{"latitude": 40.730610, "longitude": -73.935242}', TRUE, '1MJlbIhHHMPOMgxzUgjx35Ijq9D3'),
+('Lost Backpack', 'Blue backpack', 'A blue backpack with multiple compartments, containing books and a laptop.', 'Bags', '2024-01-20', '{"latitude": 34.052235, "longitude": -118.243683}', TRUE, 'uid2');
 
 -- Populate ObjetoAchado
 INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES
@@ -183,18 +174,17 @@ INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, valor_
 (4, '2024-08-01', '2024-08-10', 'Online', 500.00, FALSE);
 
 -- Now, we can insert into Licitacao since it references Leilao and Utilizador
--- Assuming the IDs for the Leilao are 1 and 2 respectively
 INSERT INTO Licitacao (leilao_id, utilizador_id, valor_licitacao) VALUES
-(1, 1, 50.00),
-(2, 2, 175.00),
-(3, 1, 250.00),
-(4, 2, 60.00),
-(3, 3, 75.00),
-(4, 4, 100.00),
-(1, 3, 30.00),
-(2, 4, 120.00);
+(1, '1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 50.00),
+(2, 'uid2', 175.00),
+(3, '1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 250.00),
+(4, 'uid2', 60.00),
+(3, 'uid3', 75.00),
+(4, 'uid4', 100.00),
+(1, 'uid3', 30.00),
+(2, 'uid4', 120.00);
 
 -- Finally, insert into Notificacao, which references Utilizador
 INSERT INTO Notificacao (utilizador_id, mensagem, data) VALUES
-(1, 'New auction available', '2024-05-15 10:00:00'),
-(2, 'Item found matching your lost item description', '2024-05-16 15:30:00');
+('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'New auction available', '2024-05-15 10:00:00'),
+('uid2', 'Item found matching your lost item description', '2024-05-16 15:30:00');
