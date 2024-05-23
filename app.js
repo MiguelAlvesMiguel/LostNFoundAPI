@@ -24,7 +24,7 @@ app.use('/v1/auctions', auctionRoutes);
 app.use('/v1/police', policeRoutes);
 app.use('/v1/reports', reportsRoutes);
 
-const port = process.env.PORT || 3999;
+const port = process.env.PORT || 3998;
 
 app.get('/', (req, res) => {
   res.status(200).send(`Welcome to ReClaim API from server ${os.hostname()}!`);
