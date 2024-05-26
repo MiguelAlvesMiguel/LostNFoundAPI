@@ -44,6 +44,27 @@ router.get('/lost', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+//Get especific lost item
+router.get('/lost/:itemId', async (req, res) => {
+  const { itemId } = req.params;
+
+  // Input validation
+  if (isNaN(parseInt(itemId))) {
+    console.log('Invalid item ID');
+    return res.status(400).json({ error: 'Invalid item ID' });
+  }
+
+  try {
+    const result = await pool.query('SELECT * FROM ObjetoPerdido WHERE ID = $1', [itemId]);
+    
+    console.log('Lost item details:', result);
+    return res.status(200).json(result.rows[0]);
+    
+  } catch (error) {
+    console.error('Error fetching lost item details:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 // Register a lost item (RF-06)
@@ -257,6 +278,29 @@ router.get('/found', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+router.get('/found/:itemId', async (req, res) => {
+  const { itemId } = req.params;
+
+  // Input validation
+  if (isNaN(parseInt(itemId))) {
+    console.log('Invalid item ID');
+    return res.status(400).json({ error: 'Invalid item ID' });
+  }
+
+  try {
+    const result = await pool.query('SELECT * FROM ObjetoAchado WHERE ID = $1', [itemId]);
+    if (result.rowCount === 0) {
+      console.log('Found item not found');
+      return res.status(404).json({ error: 'Item not found' });
+    } else {
+      return res.status(200).json(result.rows[0]);
+    }
+  } catch (error) {
+    console.error('Error fetching found item details:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 // Register a found item (RF-06)
 router.post('/found', isAuthenticated, async (req, res) => {
