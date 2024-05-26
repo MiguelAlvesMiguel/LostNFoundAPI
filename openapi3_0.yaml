@@ -267,8 +267,23 @@ paths:
                     type: integer
         '400':
           description: Invalid input. The "morada" field is missing or is not a valid string.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
           description: Server error while creating the police post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
 
   /police/members:
     post:
@@ -293,8 +308,17 @@ paths:
                   type: integer
                   description: The reference ID to an existing police station record.
                 historico_policia:
-                  type: string
-                  description: A JSON formatted string detailing the police member's history.
+                  type: object
+                  description: A JSON object detailing the police member's history.
+                  properties:
+                    yearsService:
+                      type: integer
+                      description: Number of years in service.
+                    commendations:
+                      type: array
+                      items:
+                        type: string
+                      description: List of commendations received.
       responses:
         '201':
           description: Police member registered successfully. Returns the ID of the newly registered member.
@@ -324,7 +348,37 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FoundItem'
+              type: object
+              properties:
+                titulo:
+                  type: string
+                  description: The title of the found item.
+                descricao_curta:
+                  type: string
+                  description: A short description of the found item.
+                descricao:
+                  type: string
+                  description: A detailed description of the found item.
+                categoria:
+                  type: string
+                  description: The category of the found item.
+                data_achado:
+                  type: string
+                  format: date
+                  description: The date the item was found.
+                localizacao_achado:
+                  type: string
+                  description: The location where the item was found in JSON format.
+                data_limite:
+                  type: string
+                  format: date
+                  description: The deadline date for claiming the found item.
+                valor_monetario:
+                  type: number
+                  description: The estimated monetary value of the found item.
+                policial_id:
+                  type: integer
+                  description: The ID of the police officer registering the found item.
       responses:
         '201':
           description: Found item registered successfully. Returns the ID of the newly registered item.
@@ -347,25 +401,22 @@ paths:
           schema:
             type: integer
           description: The unique identifier of the item to claim.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                claimantId:
-                  type: integer
-                  description: The unique identifier of the user claiming the item.
+        - in: query
+          name: claimantId
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the user claiming the item.
       responses:
         '200':
           description: Item claimed successfully.
         '400':
           description: Invalid input, itemId or claimantId must be integers.
         '404':
-          description: Item not found or already claimed.
+          description: Claimant not found or item not found or already claimed.
         '500':
           description: Server error while claiming the item.
+
 
   /auctions:
     get:

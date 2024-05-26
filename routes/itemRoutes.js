@@ -4,9 +4,6 @@ const { getAuth } = require('firebase/auth');
 const router = express.Router();
 const admin = require('firebase-admin');
 
-admin.initializeApp({
-  credential: admin.credential.cert(require('../adminKey.json')),
-});
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -69,17 +66,15 @@ router.get('/lost/:itemId', async (req, res) => {
 
 // Register a lost item (RF-06)
 router.post('/lost', isAuthenticated, async (req, res) => {
-  const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
+  const { descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
   const userId = req.userId;
 
   // Input validation and sanitization
-  if (!titulo || !descricao_curta || !descricao || !categoria || !data_perdido || !localizacao_perdido || ativo === undefined) {
+  if (!descricao || !categoria || !data_perdido || !localizacao_perdido || ativo === undefined) {
     console.log('Invalid input data');
     return res.status(400).json({ error: 'Invalid input data' });
   }
 
-  const sanitizedTitulo = sanitizeInput(titulo);
-  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
   const sanitizedDescricao = sanitizeInput(descricao);
   const sanitizedCategoria = sanitizeInput(categoria);
   const sanitizedLocalizacao = {
@@ -89,8 +84,8 @@ router.post('/lost', isAuthenticated, async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID',
-      [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, data_perdido, JSON.stringify(sanitizedLocalizacao), ativo, userId]
+      'INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID',
+      [sanitizedDescricao, sanitizedCategoria, data_perdido, JSON.stringify(sanitizedLocalizacao), ativo, userId]
     );
     const itemId = result.rows[0].id;
     console.log('Lost item registered successfully with ID:', itemId);
@@ -100,7 +95,6 @@ router.post('/lost', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 // Edit details of a lost item (RF-06)
 router.put('/lost/:itemId', isAuthenticated, async (req, res) => {
@@ -268,7 +262,7 @@ router.get('/compare/:lostItemId/:foundItemId', isAuthenticated, async (req, res
   }
 });
 
-//Get all found items
+// GET ALL FOUND ITEMS
 router.get('/found', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
@@ -278,6 +272,7 @@ router.get('/found', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+//GET ESPECIFIC FOUND ITEM
 router.get('/found/:itemId', async (req, res) => {
   const { itemId } = req.params;
 
@@ -298,99 +293,6 @@ router.get('/found/:itemId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching found item details:', error);
     return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-// Register a found item (RF-06)
-router.post('/found', isAuthenticated, async (req, res) => {
-  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL } = req.body;
-
-  // Input validation and sanitization
-  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || ativo === undefined || !policial_id) {
-    console.log('Invalid input data');
-    return res.status(400).json({ error: 'Invalid input data' });
-  }
-
-  const sanitizedTitulo = sanitizeInput(titulo);
-  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
-  const sanitizedDescricao = sanitizeInput(descricao);
-  const sanitizedCategoria = sanitizeInput(categoria);
-  const sanitizedLocalizacao = {
-    latitude: sanitizeInput(localizacao_achado.latitude.toString()),
-    longitude: sanitizeInput(localizacao_achado.longitude.toString()),
-  };
-  const sanitizedImageURL = imageURL ? sanitizeInput(imageURL) : null;
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING ID',
-      [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, data_achado, JSON.stringify(sanitizedLocalizacao), data_limite, ativo, valor_monetario, policial_id, sanitizedImageURL]
-    );
-    const itemId = result.rows[0].id;
-    console.log('Found item registered successfully with ID:', itemId);
-    res.status(201).json({ message: 'Found item registered successfully', itemId });
-  } catch (error) {
-    console.error('Error registering found item:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-// Register a found item (RF-06)
-router.post('/found', isAuthenticated, async (req, res) => {
-  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL } = req.body;
-
-  // Input validation and sanitization
-  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || ativo === undefined || !policial_id) {
-    console.log('Invalid input data');
-    return res.status(400).json({ error: 'Invalid input data' });
-  }
-
-  const sanitizedTitulo = sanitizeInput(titulo);
-  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
-  const sanitizedDescricao = sanitizeInput(descricao);
-  const sanitizedCategoria = sanitizeInput(categoria);
-  const sanitizedLocalizacao = {
-    latitude: sanitizeInput(localizacao_achado.latitude.toString()),
-    longitude: sanitizeInput(localizacao_achado.longitude.toString()),
-  };
-  const sanitizedImageURL = imageURL ? sanitizeInput(imageURL) : null;
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING ID',
-      [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, data_achado, JSON.stringify(sanitizedLocalizacao), data_limite, ativo, valor_monetario, policial_id, sanitizedImageURL]
-    );
-    const itemId = result.rows[0].id;
-    console.log('Found item registered successfully with ID:', itemId);
-    res.status(201).json({ message: 'Found item registered successfully', itemId });
-  } catch (error) {
-    console.error('Error registering found item:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-// Search for found items (RF-12)
-router.get('/found/search', isAuthenticated, async (req, res) => {
-  const { description } = req.query;
-
-  // Input validation and sanitization
-  if (!description) {
-    console.log('Description parameter is required');
-    return res.status(400).json({ error: 'Description parameter is required' });
-  }
-
-  const sanitizedDescription = sanitizeInput(description);
-
-  try {
-    const result = await pool.query('SELECT * FROM ObjetoAchado WHERE descricao ILIKE $1', [`%${sanitizedDescription}%`]);
-    console.log('Found items search result:', result.rows);
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error('Error searching found items:', error);
-    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -442,6 +344,6 @@ router.post('/found/:itemId/deliver', isAuthenticated, async (req, res) => {
     console.error('Error registering found item delivery:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
-}); 
+});
 
 module.exports = router;

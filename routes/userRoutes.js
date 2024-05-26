@@ -1,97 +1,81 @@
-  const express = require('express');
-  const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
-  const pool = require('../db');
-  const auth0Config = require('../Auth0Config');
+// routes/userRoutes.js
+const express = require('express');
+const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } = require('firebase/auth');
+const firebaseApp = require('../FirebaseConfig'); // Correct path to your firebaseClient.js
+const pool = require('../db');
+const auth0Config = require('../Auth0Config');
+const axios = require('axios');
+const router = express.Router();
 
-  const { auth } = require('express-oauth2-jwt-bearer');
-  const jwksRsa = require('jwks-rsa');
-  const axios = require('axios');
-  const router = express.Router();
+const firebaseAuthMiddleware = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 
-  const jwtCheck = auth({
-    audience: 'http://localhost:3003',
-    issuerBaseURL: 'https://dev-wtrodgpp1u52blif.us.auth0.com/',
-    tokenSigningAlg: 'RS256'
-  });
-  
-  router.get('/', (req, res) => {
-    console.log('GET /v1/users');
-    res.status(200).json({ message: 'Users endpoint working!' });
-  });
-  
+const auth = getAuth(firebaseApp); // Get the Auth instance using the initialized Firebase App
 
-  router.post('/register', async (req, res) => {
-    const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
+router.get('/', (req, res) => {
+  console.log('GET /v1/users');
+  res.status(200).json({ message: 'Users endpoint working!' });
+});
 
-    try {
-      const auth = getAuth();  // Get the auth instance at request time
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+router.post('/register', async (req, res) => {
+  const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
-      // Insert the new user into the Utilizador table
-      await pool.query(
-        'INSERT INTO Utilizador (ID, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
-      );
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-      // Issue an Auth0 access token
-      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-        grant_type: 'client_credentials',
-        client_id: auth0Config.clientId,
-        client_secret: auth0Config.clientSecret,
-        audience: auth0Config.audience
-      });
+    await pool.query(
+      'INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
+    );
 
-      const accessToken = tokenResponse.data.access_token;
+    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+      grant_type: 'client_credentials',
+      client_id: auth0Config.clientId,
+      client_secret: auth0Config.clientSecret,
+      audience: auth0Config.audience
+    });
 
-      res.status(201).json({ message: 'User registered successfully!', user, accessToken });
+    const accessToken = tokenResponse.data.access_token;
 
-    } catch (error) {
-      console.error('Error registering user:', error);
-      res.status(400).json({ error: error.message });
-    }
-  });
+    res.status(201).json({ message: 'User registered successfully!', user, accessToken });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
 
-  // User login endpoint (no change needed if already registered)
-  router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
 
-    try {
-      const auth = getAuth();  // Get the auth instance at request time
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-      // Issue an Auth0 access token
-      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-        grant_type: 'client_credentials',
-        client_id: auth0Config.clientId,
-        client_secret: auth0Config.clientSecret,
-        audience: auth0Config.audience
-      });
+    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+      grant_type: 'client_credentials',
+      client_id: auth0Config.clientId,
+      client_secret: auth0Config.clientSecret,
+      audience: auth0Config.audience
+    });
 
-      const accessToken = tokenResponse.data.access_token;
+    const accessToken = tokenResponse.data.access_token;
+    console.log('User logged in successfully:', user);
+    res.status(200).json({ message: 'User logged in successfully', user, accessToken });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(401).json({ error: error.message });
+  }
+});
 
-      res.status(200).json({ message: 'User logged in successfully', user, accessToken });
-
-    } catch (error) {
-      console.error('Error logging in user:', error);
-      res.status(401).json({ error: error.message });
-    }
-  });
-
-// Google sign-in endpoint
 router.post('/google-signin', async (req, res) => {
   try {
-    const auth = getAuth();  // Get the auth instance at request time
     const provider = new GoogleAuthProvider();
-
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
 
-    // Check if this user is already in the database
     const { rows } = await pool.query('SELECT * FROM Utilizador WHERE ID = $1', [user.uid]);
     if (rows.length === 0) {
-      // Insert the new user into the Utilizador table
       await pool.query(
         'INSERT INTO Utilizador (ID, nome, email, ativo) VALUES ($1, $2, $3, $4)',
         [user.uid, user.displayName || 'Anonymous', user.email, true]
@@ -105,16 +89,37 @@ router.post('/google-signin', async (req, res) => {
   }
 });
 
+// Use FirebaseAuthMiddleware for Firebase tokens
+router.get('/me', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
 
-// Edit user account details
-router.put('/:userId', jwtCheck, async (req, res) => {
-  const { userId } = req.params;
+  try {
+    const result = await pool.query('SELECT * FROM Utilizador WHERE firebase_uid = $1', [firebase_uid]);
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(200).json(result.rows[0]);
+    }
+  } catch (error) {
+    console.error('Error retrieving user details:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Example route using Auth0 JWT Check Middleware
+router.get('/auth0-example', jwtCheck, async (req, res) => {
+  res.status(200).json({ message: 'Auth0 token is valid' });
+});
+
+router.put('/me', firebaseAuthMiddleware, async (req, res) => {
   const { nome, genero, data_nasc, morada, telemovel, historico, ativo } = req.body;
+  const firebase_uid = req.user.uid;
 
   try {
     const result = await pool.query(
-      'UPDATE Utilizador SET nome = $1, genero = $2, data_nasc = $3, morada = $4, telemovel = $5, historico = $6, ativo = $7 WHERE ID = $8',
-      [nome, genero, data_nasc, morada, telemovel, historico, ativo, userId]
+      'UPDATE Utilizador SET nome = $1, genero = $2, data_nasc = $3, morada = $4, telemovel = $5, historico = $6, ativo = $7 WHERE firebase_uid = $8',
+      [nome, genero, data_nasc, morada, telemovel, historico, ativo, firebase_uid]
     );
 
     if (result.rowCount === 0) {
@@ -128,12 +133,11 @@ router.put('/:userId', jwtCheck, async (req, res) => {
   }
 });
 
-// Remove a user account
-router.delete('/:userId', jwtCheck, async (req, res) => {
-  const { userId } = req.params;
+router.delete('/me', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
 
   try {
-    const result = await pool.query('DELETE FROM Utilizador WHERE ID = $1', [userId]);
+    const result = await pool.query('DELETE FROM Utilizador WHERE firebase_uid = $1', [firebase_uid]);
 
     if (result.rowCount === 0) {
       res.status(404).json({ error: 'User not found' });
@@ -146,14 +150,13 @@ router.delete('/:userId', jwtCheck, async (req, res) => {
   }
 });
 
-// Get notifications for a user
-router.get('/:userId/notifications', jwtCheck, async (req, res) => {
-  const { userId } = req.params;
+router.get('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
 
   try {
     const result = await pool.query(
       'SELECT ID as notificationId, mensagem as message, data as date FROM Notificacao WHERE utilizador_id = $1',
-      [userId]
+      [firebase_uid]
     );
 
     res.status(200).json(result.rows);
@@ -163,15 +166,14 @@ router.get('/:userId/notifications', jwtCheck, async (req, res) => {
   }
 });
 
-// Send a notification to a user
-router.post('/:userId/notifications', jwtCheck, async (req, res) => {
-  const { userId } = req.params;
+router.post('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
   const { message } = req.body;
 
   try {
     const result = await pool.query(
       'INSERT INTO Notificacao (utilizador_id, mensagem, data) VALUES ($1, $2, NOW()) RETURNING ID',
-      [userId, message]
+      [firebase_uid, message]
     );
 
     if (result.rowCount === 0) {
@@ -185,15 +187,14 @@ router.post('/:userId/notifications', jwtCheck, async (req, res) => {
   }
 });
 
-// Update user account status
-router.put('/:userId/status', jwtCheck, async (req, res) => {
-  const { userId } = req.params;
+router.put('/me/status', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
   const { status } = req.body;
 
   try {
     const result = await pool.query(
-      'UPDATE Utilizador SET ativo = $1 WHERE ID = $2',
-      [status === 'active', userId]
+      'UPDATE Utilizador SET ativo = $1 WHERE firebase_uid = $2',
+      [status === 'active', firebase_uid]
     );
 
     if (result.rowCount === 0) {
@@ -207,17 +208,37 @@ router.put('/:userId/status', jwtCheck, async (req, res) => {
   }
 });
 
-// Logout user with firebase
 router.post('/logout', async (req, res) => {
-  const auth = getAuth();  // Get the auth instance at request time
   await auth.signOut();
 
-  // Return a success message if the sign-out was successful
   if (auth.currentUser) {
     return res.status(500).json({ error: 'Error logging out' });
   }
 
   res.status(200).json({ message: 'Logout successful' });
 });
+
+
+router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
+  const firebase_uid = req.user.uid;
+
+  try {
+    const result = await pool.query(`
+      SELECT ID, titulo, descricao_curta, data_perdido
+      FROM ObjetoPerdido
+      WHERE utilizador_id = $1
+    `, [firebase_uid]);
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'No lost items found for this user' });
+    } else {
+      res.status(200).json(result.rows);
+    }
+  } catch (error) {
+    console.error('Error retrieving lost items:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;
