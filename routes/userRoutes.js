@@ -240,5 +240,46 @@ router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
   }
 });
 
+// Endpoint to deactivate user account
+router.put('/me/deactivate', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
+
+  try {
+    const result = await pool.query(
+      'UPDATE Utilizador SET ativo = FALSE WHERE firebase_uid = $1',
+      [firebase_uid]
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(200).json({ message: 'User account deactivated' });
+    }
+  } catch (error) {
+    console.error('Error deactivating user account:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to activate user account
+router.put('/me/activate', firebaseAuthMiddleware, async (req, res) => {
+  const firebase_uid = req.user.uid;
+
+  try {
+    const result = await pool.query(
+      'UPDATE Utilizador SET ativo = TRUE WHERE firebase_uid = $1',
+      [firebase_uid]
+    );
+
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'User not found' });
+    } else {
+      res.status(200).json({ message: 'User account activated' });
+    }
+  } catch (error) {
+    console.error('Error activating user account:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 module.exports = router;
