@@ -190,6 +190,98 @@ router.post('/members', policeAuthMiddleware, async (req, res) => {
   }
 });
 
+// Define the PUT endpoint to edit an existing police member
+router.put('/members/edit/:memberId', policeAuthMiddleware, async (req, res) => {
+  const { memberId } = req.params;
+  const { nome, posto_policia, historico_policia } = req.body;
+
+  const sanitizeInput2 = (input) => {
+    if (typeof input === 'string') {
+      return input.replace(/[^a-zA-Z0-9\s]/g, '');
+    } else if (typeof input === 'object' && input !== null) {
+      const sanitizedObject = {};
+      for (const key in input) {
+        sanitizedObject[key] = sanitizeInput2(input[key]);
+      }
+      return sanitizedObject;
+    }
+    return input;
+  };
+
+  const sanitizedNome = sanitizeInput2(nome);
+  const sanitizedPosto = parseInt(posto_policia);
+  let sanitizedHistorico = null;
+
+  if (historico_policia) {
+    sanitizedHistorico = sanitizeInput2(historico_policia);
+  }
+
+  // Validate the required fields
+  if (!nome || !posto_policia) {
+    return res.status(400).json({ error: 'Invalid input: missing required fields "nome" or "posto_policia".' });
+  }
+
+  try {
+    // Check if the police member exists
+    const checkQuery = 'SELECT 1 FROM MembroPolicia WHERE ID = $1';
+    const checkResult = await pool.query(checkQuery, [memberId]);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Police member not found.' });
+    }
+
+    // Prepare the SQL query to update the police member
+    const updateQuery = `
+      UPDATE MembroPolicia
+      SET nome = $1, posto_policia = $2, historico_policia = $3::jsonb
+      WHERE ID = $4
+    `;
+    const values = [sanitizedNome, sanitizedPosto, sanitizedHistorico, memberId];
+
+    // Execute the query with parameterized values to prevent SQL injection
+    await pool.query(updateQuery, values);
+
+    // Return a 200 response to indicate successful update
+    res.status(200).json({ message: 'Police member updated successfully' });
+
+  } catch (error) {
+    console.error('Error updating police member:', error);
+    res.status(500).json({ error: 'Server error while updating police member.' });
+  }
+});
+
+// Define the DELETE endpoint to remove a police member
+router.delete('/members/delete/:memberId', policeAuthMiddleware, async (req, res) => {
+  const memberId = parseInt(req.params.memberId, 10);
+
+  if (isNaN(memberId)) {
+    return res.status(400).json({ error: 'Invalid memberId. It must be a number.' });
+  }
+
+  try {
+    // Check if the police member exists
+    const checkQuery = 'SELECT 1 FROM MembroPolicia WHERE ID = $1';
+    const checkResult = await pool.query(checkQuery, [memberId]);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Police member not found.' });
+    }
+
+    // Prepare the SQL query to delete the police member
+    const deleteQuery = 'DELETE FROM MembroPolicia WHERE ID = $1';
+    
+    // Execute the query with parameterized values to prevent SQL injection
+    await pool.query(deleteQuery, [memberId]);
+
+    // Return a 200 response to indicate successful deletion
+    res.status(200).json({ message: 'Police member deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting police member:', error);
+    res.status(500).json({ error: 'Server error while deleting police member.' });
+  }
+});
+
 // Define the POST endpoint to register a new police post (protected route)
 router.post('/posts', policeAuthMiddleware, async (req, res) => {
   // Extract the relevant field from the request body
@@ -226,5 +318,77 @@ router.post('/posts', policeAuthMiddleware, async (req, res) => {
   }
 });
   
+
+// Define the PUT endpoint to edit an existing police post
+router.put('/posts/edit/:postId', policeAuthMiddleware, async (req, res) => {
+  const postId = parseInt(req.params.postId, 10);
+  const { morada } = req.body;
+
+  const sanitizedMorada = sanitizeInput(morada);
+
+  if (isNaN(postId) || !morada || typeof morada !== 'string') {
+    return res.status(400).json({ error: 'Invalid input: missing or invalid "postId" or "morada".' });
+  }
+
+  try {
+    // Check if the police post exists
+    const checkQuery = 'SELECT 1 FROM PostoPolicia WHERE ID = $1';
+    const checkResult = await pool.query(checkQuery, [postId]);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Police post not found.' });
+    }
+
+    // Prepare the SQL query to update the police post
+    const updateQuery = `
+      UPDATE PostoPolicia
+      SET morada = $1
+      WHERE ID = $2
+    `;
+    const values = [sanitizedMorada, postId];
+
+    // Execute the query with parameterized values to prevent SQL injection
+    await pool.query(updateQuery, values);
+
+    // Return a 200 response to indicate successful update
+    res.status(200).json({ message: 'Police post updated successfully' });
+
+  } catch (error) {
+    console.error('Error updating police post:', error);
+    res.status(500).json({ error: 'Server error while updating police post.' });
+  }
+});
+
+// Define the DELETE endpoint to remove a police post
+router.delete('/posts/delete/:postId', policeAuthMiddleware, async (req, res) => {
+  const postId = parseInt(req.params.postId, 10);
+
+  if (isNaN(postId)) {
+    return res.status(400).json({ error: 'Invalid postId. It must be a number.' });
+  }
+
+  try {
+    // Check if the police post exists
+    const checkQuery = 'SELECT 1 FROM PostoPolicia WHERE ID = $1';
+    const checkResult = await pool.query(checkQuery, [postId]);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Police post not found.' });
+    }
+
+    // Prepare the SQL query to delete the police post
+    const deleteQuery = 'DELETE FROM PostoPolicia WHERE ID = $1';
+
+    // Execute the query with parameterized values to prevent SQL injection
+    await pool.query(deleteQuery, [postId]);
+
+    // Return a 200 response to indicate successful deletion
+    res.status(200).json({ message: 'Police post deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting police post:', error);
+    res.status(500).json({ error: 'Server error while deleting police post.' });
+  }
+});
 
 module.exports = router;

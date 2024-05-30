@@ -283,6 +283,111 @@ paths:
                 properties:
                   error:
                     type: string
+        
+  /police/posts/edit/{postId}:
+    put:
+      tags:
+        - Police Operations
+      summary: Edit an existing police post
+      description: Updates the information of an existing police post in the database.
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+          description: The unique ID of the police post.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - morada
+              properties:
+                morada:
+                  type: string
+                  description: The address of the police post.
+      responses:
+        '200':
+          description: Police post updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid input. The "morada" field is missing or is not a valid string.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Police post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Server error while updating the police post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /police/posts/delete/{postId}:
+    delete:
+      tags:
+        - Police Operations
+      summary: Delete a police post
+      description: Deletes a police post from the database if the post exists.
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+          description: The unique ID of the police post to delete.
+      responses:
+        '200':
+          description: Police post deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Police post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Server error while deleting the police post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
 
   /police/members:
@@ -310,15 +415,6 @@ paths:
                 historico_policia:
                   type: object
                   description: A JSON object detailing the police member's history.
-                  properties:
-                    yearsService:
-                      type: integer
-                      description: Number of years in service.
-                    commendations:
-                      type: array
-                      items:
-                        type: string
-                      description: List of commendations received.
       responses:
         '201':
           description: Police member registered successfully. Returns the ID of the newly registered member.
@@ -335,6 +431,83 @@ paths:
           description: Invalid input, required fields are missing or incorrect type of data was provided.
         '500':
           description: Internal server error. Indicates a server-side error that prevented the member from being registered.
+  
+  /police/members/edit/{memberId}:
+    put:
+      tags:
+        - Police Operations
+      summary: Edit an existing police member
+      description: Updates the information of an existing police member in the database.
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the police member to edit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nome
+                - posto_policia
+              properties:
+                nome:
+                  type: string
+                  description: The full name of the police member.
+                posto_policia:
+                  type: integer
+                  description: The reference ID to an existing police station record.
+                historico_policia:
+                  type: object
+                  description: A JSON object detailing the police member's history.
+      responses:
+        '200':
+          description: Police member updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid input, required fields are missing or incorrect type of data was provided.
+        '404':
+          description: Police member not found.
+        '500':
+          description: Internal server error. Indicates a server-side error that prevented the member from being updated.
+
+  /police/members/delete/{memberId}:
+    delete:
+      tags:
+        - Police Operations
+      summary: Remove a police member
+      description: Deletes a police member from the database if the member exists.
+      parameters:
+        - in: path
+          name: memberId
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the police member to delete.
+      responses:
+        '200':
+          description: Police member deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Police member not found.
+        '500':
+          description: Internal server error. Indicates a server-side error that prevented the member from being deleted.
 
 
   /police/items/found/register:

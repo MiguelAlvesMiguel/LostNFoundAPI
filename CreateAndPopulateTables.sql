@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS Admin;
 DROP TABLE IF EXISTS MembroPolicia;
 DROP TABLE IF EXISTS PostoPolicia;
 DROP TABLE IF EXISTS Utilizador;
+DROP TABLE IF EXISTS Pagamento;
 
 -- Create tables
 CREATE TABLE Utilizador (
@@ -30,7 +31,7 @@ CREATE TABLE PostoPolicia (
 CREATE TABLE MembroPolicia (
     ID SERIAL PRIMARY KEY,
     utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
-    posto_policia INT NOT NULL REFERENCES PostoPolicia(ID),
+    posto_policia INT NOT NULL REFERENCES PostoPolicia(ID) ON DELETE CASCADE,
     historico_policia JSONB
 );
 
@@ -63,7 +64,7 @@ CREATE TABLE ObjetoAchado (
     data_limite DATE NOT NULL,
     ativo BOOLEAN NOT NULL,
     valor_monetario DECIMAL(10, 2),
-    policial_id INT NOT NULL REFERENCES MembroPolicia(ID) ON DELETE CASCADE,
+    policial_id INT REFERENCES MembroPolicia(ID),
     imageURL TEXT
 );
 
@@ -89,6 +90,15 @@ CREATE TABLE Notificacao (
     utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
     mensagem TEXT NOT NULL,
     data TIMESTAMP NOT NULL
+);
+
+CREATE TABLE Pagamento (
+    ID SERIAL PRIMARY KEY,
+    licitacao_id INT NOT NULL REFERENCES Licitacao(ID) ON DELETE CASCADE,
+    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE, -- User who made the payment
+    data_pagamento DATE NOT NULL,
+    valor DECIMAL(10, 2) NOT NULL,
+    ativo BOOLEAN NOT NULL -- true if payment was made, false if it wasnt made yet
 );
 
 -- Delete all rows from the tables, respecting the foreign key constraints
