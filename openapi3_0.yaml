@@ -914,6 +914,125 @@ paths:
             text/plain:
               schema:
                 type: string
+    
+  /payments/intents:
+    post:
+      tags:
+        - Payments
+      summary: Create a payment intent
+      description: Creates a payment intent for a user, with the payment status set to false (not paid yet).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - licitacao_id
+                - utilizador_id
+                - data_pagamento
+                - valor
+              properties:
+                licitacao_id:
+                  type: integer
+                  description: The ID of the auction (Licitacao) related to the payment.
+                utilizador_id:
+                  type: string
+                  description: The ID of the user making the payment.
+                data_pagamento:
+                  type: string
+                  format: date
+                  description: The date when the payment is intended to be made.
+                valor:
+                  type: number
+                  format: decimal
+                  description: The amount of the payment.
+      responses:
+        '201':
+          description: Payment intent created successfully. Returns the ID of the newly created payment intent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  id:
+                    type: integer
+        '400':
+          description: Invalid input, required fields are missing or incorrect type of data was provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Server error while creating the payment intent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /payments/complete:
+    put:
+      tags:
+        - Payments
+      summary: Complete a payment
+      description: Marks a payment as complete by setting the ativo field to true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - payment_id
+              properties:
+                payment_id:
+                  type: integer
+                  description: The ID of the payment to complete.
+      responses:
+        '200':
+          description: Payment completed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Invalid input, payment_id is missing or incorrect type of data was provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Payment not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Server error while completing the payment.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
 components:
   schemas:
