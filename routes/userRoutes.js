@@ -224,7 +224,7 @@ router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
 
   try {
     const result = await pool.query(`
-      SELECT ID, titulo, descricao_curta, data_perdido
+      SELECT *
       FROM ObjetoPerdido
       WHERE utilizador_id = $1
     `, [firebase_uid]);
