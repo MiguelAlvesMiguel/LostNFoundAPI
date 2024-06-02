@@ -176,7 +176,6 @@ router.get('/user-activity/:userId', async (req, res) => {
             WHERE utilizador_id = $1 AND ativo = TRUE
             `, [sanitizedUserId]);
 
-        // Access the totalItemsLost value from the query result
         const totalItemsLost = lostItemsResult.rows[0].totalItemsLost;
 
         // Query to count auctions participated by the user
@@ -188,10 +187,32 @@ router.get('/user-activity/:userId', async (req, res) => {
 
         const auctionsParticipated = auctionsParticipatedResult.rows[0].auctionsParticipated;
 
+        // Query to get details of lost items
+        const lostItemsDetailsResult = await pool.query(`
+            SELECT id, titulo, descricao, data_perda, localizacao
+            FROM objetoperdido
+            WHERE utilizador_id = $1 AND ativo = TRUE
+            `, [sanitizedUserId]);
+
+        const lostItemsDetails = lostItemsDetailsResult.rows;
+
+        // Query to get details of auctions participated
+        const auctionsDetailsResult = await pool.query(`
+            SELECT leilao.id, leilao.titulo, leilao.descricao, leilao.data_inicio, leilao.data_fim, leilao.valor_base, leilao.localizacao
+            FROM leilao
+            JOIN licitacao ON leilao.id = licitacao.leilao_id
+            WHERE licitacao.utilizador_id = $1
+            GROUP BY leilao.id
+            `, [sanitizedUserId]);
+
+        const auctionsDetails = auctionsDetailsResult.rows;
+
         // Prepare the response object
         const response = {
             totalItemsLost: parseInt(totalItemsLost),
-            auctionsParticipated: parseInt(auctionsParticipated)
+            lostItemsDetails,
+            auctionsParticipated: parseInt(auctionsParticipated),
+            auctionsDetails
         };
 
         // Send the successful response with the result

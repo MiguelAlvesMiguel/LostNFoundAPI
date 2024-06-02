@@ -395,7 +395,7 @@ paths:
       tags:
         - Police Operations
       summary: Register a new police member
-      description: Adds a new member to the police database. The system automatically generates a unique ID for each new member.
+      description: Adds a new member to the police database, registering them in both the `Utilizador` and `MembroPolicia` tables. The system automatically generates a unique ID for each new member. Requires admin authentication.
       requestBody:
         required: true
         content:
@@ -403,21 +403,46 @@ paths:
             schema:
               type: object
               required:
+                - email
+                - password
                 - nome
+                - genero
+                - data_nasc
+                - morada
+                - telemovel
                 - posto_policia
               properties:
+                email:
+                  type: string
+                  description: The email address of the police member.
+                password:
+                  type: string
+                  description: The password for the police member.
                 nome:
                   type: string
                   description: The full name of the police member.
+                genero:
+                  type: string
+                  description: The gender of the police member.
+                data_nasc:
+                  type: string
+                  format: date
+                  description: The birth date of the police member.
+                morada:
+                  type: string
+                  description: The address of the police member.
+                telemovel:
+                  type: string
+                  description: The phone number of the police member.
                 posto_policia:
                   type: integer
-                  description: The reference ID to an existing police station record.
+                  description: The ID of the police station where the member is assigned.
                 historico_policia:
                   type: object
                   description: A JSON object detailing the police member's history.
       responses:
         '201':
-          description: Police member registered successfully. Returns the ID of the newly registered member.
+          description: Police member registered successfully. Returns the ID of the newly registered member and an access token.
           content:
             application/json:
               schema:
@@ -427,10 +452,27 @@ paths:
                     type: string
                   id:
                     type: integer
+                  accessToken:
+                    type: string
         '400':
           description: Invalid input, required fields are missing or incorrect type of data was provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
           description: Internal server error. Indicates a server-side error that prevented the member from being registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
   
   /police/members/edit/{memberId}:
     put:
@@ -481,22 +523,19 @@ paths:
         '500':
           description: Internal server error. Indicates a server-side error that prevented the member from being updated.
 
-  /police/members/delete/{memberId}:
+  /police/members/delete/{firebaseUid}:
     delete:
-      tags:
-        - Police Operations
-      summary: Remove a police member
-      description: Deletes a police member from the database if the member exists.
+      summary: Delete a police member and associated user
       parameters:
-        - in: path
-          name: memberId
+        - name: firebaseUid
+          in: path
           required: true
+          description: The Firebase UID of the police member
           schema:
-            type: integer
-          description: The unique identifier of the police member to delete.
+            type: string
       responses:
         '200':
-          description: Police member deleted successfully.
+          description: Successful deletion
           content:
             application/json:
               schema:
@@ -504,11 +543,38 @@ paths:
                 properties:
                   message:
                     type: string
+                    example: Police member and associated user deleted successfully
+        '400':
+          description: Invalid firebaseUid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid firebaseUid. It must be a valid string.
         '404':
-          description: Police member not found.
+          description: User not found or inactive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: One of 'User not found or inactive.' or 'Police member not found.'
+ 
         '500':
-          description: Internal server error. Indicates a server-side error that prevented the member from being deleted.
-
+          description: Server error while deleting police member
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Server error while deleting police member.
 
   /police/items/found/register:
     post:
@@ -873,18 +939,17 @@ paths:
 
   /reports/user-activity/{userId}:
     get:
-      summary: Get report of user activity
-      tags:
-        - Reports
+      summary: Get user activity report
       parameters:
-        - in: path
-          name: userId
+        - name: userId
+          in: path
           required: true
+          description: The ID of the user
           schema:
-            type: integer 
+            type: string
       responses:
         '200':
-          description: User activity report
+          description: Successful response
           content:
             application/json:
               schema:
@@ -892,28 +957,67 @@ paths:
                 properties:
                   totalItemsLost:
                     type: integer
-                    description: The total number of items reported lost by the user.
+                    description: Total number of lost items by the user
+                  lostItemsDetails:
+                    type: array
+                    description: Details of the lost items
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The ID of the lost item
+                        titulo:
+                          type: string
+                          description: The title of the lost item
+                        descricao:
+                          type: string
+                          description: The description of the lost item
+                        data_perda:
+                          type: string
+                          format: date
+                          description: The date the item was lost
+                        localizacao:
+                          type: string
+                          description: The location where the item was lost
                   auctionsParticipated:
                     type: integer
-                    description: The number of unique auctions in which the user has participated.
-        '400':
-          description: Invalid user ID format. User ID must be an integer.
-          content:
-            text/plain:
-              schema:
-                type: string
+                    description: Total number of auctions the user participated in
+                  auctionsDetails:
+                    type: array
+                    description: Details of the auctions participated in
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The ID of the auction
+                        titulo:
+                          type: string
+                          description: The title of the auction
+                        descricao:
+                          type: string
+                          description: The description of the auction
+                        data_inicio:
+                          type: string
+                          format: date
+                          description: The start date of the auction
+                        data_fim:
+                          type: string
+                          format: date
+                          description: The end date of the auction
+                        valor_base:
+                          type: number
+                          format: float
+                          description: The base value of the auction
+                        localizacao:
+                          type: string
+                          description: The location of the auction
         '404':
-          description: User not found or inactive.
-          content:
-            text/plain:
-              schema:
-                type: string
+          description: User not found or inactive
         '500':
-          description: Internal server error.
-          content:
-            text/plain:
-              schema:
-                type: string
+          description: Internal server error
+
     
   /payments/intents:
     post:

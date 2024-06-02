@@ -20,7 +20,9 @@ CREATE TABLE Utilizador (
     email VARCHAR(255) NOT NULL UNIQUE,
     telemovel VARCHAR(20) NOT NULL,
     historico TEXT,
-    ativo BOOLEAN NOT NULL
+    ativo BOOLEAN NOT NULL,
+    isCop BOOLEAN NOT NULL DEFAULT FALSE,
+    isAdmin BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE PostoPolicia (
@@ -125,8 +127,8 @@ ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;
 -- Insert data into tables in the correct order
 
 -- First, insert into Utilizador since other tables reference it
-INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES
-('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'hmmsm@example.com', '+351 912 345 678', TRUE),
+INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo, isCop, isAdmin) VALUES
+('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'hmmsm@example.com', '+351 912 345 678', TRUE,TRUE,TRUE),
 ('bofinha1', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon','aa@gmail.com', '+351 923 456 789', TRUE),
 ('uid2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE),
 ('uid3', 'Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE),
