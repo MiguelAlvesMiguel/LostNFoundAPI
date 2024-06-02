@@ -474,41 +474,40 @@ paths:
                     type: string
 
   
-  /police/members/edit/{memberId}:
+  /police/members/edit/{firebaseUid}:
     put:
-      tags:
-        - Police Operations
-      summary: Edit an existing police member
-      description: Updates the information of an existing police member in the database.
+      summary: Edit a police member and associated user details
       parameters:
-        - in: path
-          name: memberId
+        - name: firebaseUid
+          in: path
           required: true
+          description: The Firebase UID of the police member
           schema:
-            type: integer
-          description: The unique identifier of the police member to edit.
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required:
-                - nome
-                - posto_policia
               properties:
                 nome:
                   type: string
-                  description: The full name of the police member.
+                  description: The name of the police member
+                  example: "John Doe"
                 posto_policia:
                   type: integer
-                  description: The reference ID to an existing police station record.
+                  description: The police station ID
+                  example: 1
                 historico_policia:
                   type: object
-                  description: A JSON object detailing the police member's history.
+                  description: The history of the police member
+                  additionalProperties:
+                    type: string
+                  example: {"years_of_service": "10", "awards": "medal of valor"}
       responses:
         '200':
-          description: Police member updated successfully.
+          description: Successful update
           content:
             application/json:
               schema:
@@ -516,12 +515,37 @@ paths:
                 properties:
                   message:
                     type: string
+                    example: Police member updated successfully
         '400':
-          description: Invalid input, required fields are missing or incorrect type of data was provided.
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: missing required fields "nome" or "posto_policia".
         '404':
-          description: Police member not found.
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: One of 'User not found or inactive.' or 'Police member not found.'
         '500':
-          description: Internal server error. Indicates a server-side error that prevented the member from being updated.
+          description: Server error while updating police member
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Server error while updating police member.
 
   /police/members/delete/{firebaseUid}:
     delete:
