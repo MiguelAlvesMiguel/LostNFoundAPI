@@ -233,6 +233,7 @@ router.put('/members/edit/:firebaseUid', policeAuthMiddleware, async (req, res) 
     return input;
   };
 
+  const sanitizedFirebaseUid = sanitizeInput2(firebaseUid);
   const sanitizedNome = sanitizeInput2(nome);
   const sanitizedPosto = parseInt(posto_policia);
   let sanitizedHistorico = null;
@@ -248,18 +249,16 @@ router.put('/members/edit/:firebaseUid', policeAuthMiddleware, async (req, res) 
 
   try {
     // Check if the user exists in the Utilizador table and is active
-    const userCheckQuery = 'SELECT id FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
-    const userCheckResult = await pool.query(userCheckQuery, [firebaseUid]);
+    const userCheckQuery = 'SELECT 1 FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
+    const userCheckResult = await pool.query(userCheckQuery, [sanitizedFirebaseUid]);
 
     if (userCheckResult.rowCount === 0) {
       return res.status(404).json({ error: 'User not found or inactive.' });
     }
 
-    const utilizadorId = userCheckResult.rows[0].id;
-
     // Check if the police member exists in the MembroPolicia table
     const checkQuery = 'SELECT 1 FROM MembroPolicia WHERE utilizador_id = $1';
-    const checkResult = await pool.query(checkQuery, [utilizadorId]);
+    const checkResult = await pool.query(checkQuery, [sanitizedFirebaseUid]);
 
     if (checkResult.rowCount === 0) {
       return res.status(404).json({ error: 'Police member not found.' });
@@ -271,7 +270,7 @@ router.put('/members/edit/:firebaseUid', policeAuthMiddleware, async (req, res) 
       SET nome = $1, posto_policia = $2, historico_policia = $3::jsonb
       WHERE utilizador_id = $4
     `;
-    const values = [sanitizedNome, sanitizedPosto, sanitizedHistorico, utilizadorId];
+    const values = [sanitizedNome, sanitizedPosto, sanitizedHistorico || null, sanitizedFirebaseUid];
 
     // Execute the query with parameterized values to prevent SQL injection
     await pool.query(updateQuery, values);
@@ -296,18 +295,16 @@ router.delete('/members/delete/:firebaseUid', policeAuthMiddleware, async (req, 
 
   try {
     // Check if the user exists in the Utilizador table and is active
-    const userCheckQuery = 'SELECT id FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
+    const userCheckQuery = 'SELECT 1 FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
     const userCheckResult = await pool.query(userCheckQuery, [firebaseUid]);
 
     if (userCheckResult.rowCount === 0) {
       return res.status(404).json({ error: 'User not found or inactive.' });
     }
 
-    const utilizadorId = userCheckResult.rows[0].id;
-
     // Check if the police member exists in the MembroPolicia table
     const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = $1';
-    const checkResult = await pool.query(checkQuery, [utilizadorId]);
+    const checkResult = await pool.query(checkQuery, [firebaseUid]);
 
     if (checkResult.rowCount === 0) {
       return res.status(404).json({ error: 'Police member not found.' });
@@ -440,5 +437,44 @@ router.delete('/posts/delete/:postId', policeAuthMiddleware, async (req, res) =>
     res.status(500).json({ error: 'Server error while deleting police post.' });
   }
 });
+
+// Define the GET endpoint to retrieve all police posts
+router.get('/posts', policeAuthMiddleware, async (req, res) => {
+  try {
+    // Query to retrieve all police posts
+    const policePostsQuery = `
+      SELECT id, nome, localizacao
+      FROM PostoPolicia
+      ORDER BY nome
+    `;
+    const policePostsResult = await pool.query(policePostsQuery);
+
+    // Return the police posts
+    res.status(200).json(policePostsResult.rows);
+  } catch (error) {
+    console.error('Error retrieving police posts:', error);
+    res.status(500).json({ error: 'Server error while retrieving police posts.' });
+  }
+});
+// Define the GET endpoint to retrieve all police members
+router.get('/police/members', policeAuthMiddleware, async (req, res) => {
+  try {
+    // Query to retrieve all police members
+    const policeMembersQuery = `
+      SELECT mp.id, mp.nome, mp.posto_policia, mp.historico_policia, u.firebase_uid
+      FROM MembroPolicia mp
+      JOIN Utilizador u ON mp.utilizador_id = u.id
+      ORDER BY mp.nome
+    `;
+    const policeMembersResult = await pool.query(policeMembersQuery);
+
+    // Return the police members
+    res.status(200).json(policeMembersResult.rows);
+  } catch (error) {
+    console.error('Error retrieving police members:', error);
+    res.status(500).json({ error: 'Server error while retrieving police members.' });
+  }
+});
+
 
 module.exports = router;

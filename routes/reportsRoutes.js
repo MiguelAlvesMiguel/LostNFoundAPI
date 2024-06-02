@@ -98,7 +98,7 @@ const sanitizeInput = (input) => {
             stats: {
                 totalLost,
                 totalFound,
-                lostToFoundRatio,
+                lostToFoundRatio: lostToFoundRatio.toFixed(2),
                 averageTimeToFind: averageTimeToFind.toFixed(2) + ' days' // Rounded to two decimal places
             }
         });
@@ -224,7 +224,78 @@ router.get('/user-activity/:userId', async (req, res) => {
     }
 });
 
+// Define the GET endpoint to retrieve found objects by a police officer
+router.get('/reports/found-objects/:firebaseUid', policeAuthMiddleware, async (req, res) => {
+    const firebaseUid = sanitizeInput(req.params.firebaseUid);
+  
+    if (!firebaseUid) {
+      return res.status(400).json({ error: 'Invalid firebaseUid. It must be a valid string.' });
+    }
+  
+    try {
+      // Check if the user exists in the Utilizador table and is active
+      const userCheckQuery = 'SELECT 1 FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
+      const userCheckResult = await pool.query(userCheckQuery, [firebaseUid]);
+  
+      if (userCheckResult.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found or inactive.' });
+      }
+  
+      // Check if the police member exists in the MembroPolicia table
+      const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = (SELECT id FROM Utilizador WHERE firebase_uid = $1)';
+      const checkResult = await pool.query(checkQuery, [firebaseUid]);
+  
+      if (checkResult.rowCount === 0) {
+        return res.status(404).json({ error: 'Police member not found.' });
+      }
+  
+      const policialId = checkResult.rows[0].id;
+  
+      // Retrieve the found objects by the police officer
+      const foundObjectsQuery = `
+        SELECT id, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, data_achado, titulo, descricao_curta, descricao, categoria, imageurl
+        FROM ObjetoAchado
+        WHERE policial_id = $1
+      `;
+      const foundObjectsResult = await pool.query(foundObjectsQuery, [policialId]);
+  
+      // Return the found objects
+      res.status(200).json(foundObjectsResult.rows);
+  
+    } catch (error) {
+      console.error('Error retrieving found objects:', error);
+      res.status(500).json({ error: 'Server error while retrieving found objects.' });
+    }
+  });
 
-
+// Define the GET endpoint to retrieve average statistics of lost and found objects per month
+router.get('/reports/statistics', policeAuthMiddleware, async (req, res) => {
+    try {
+      // Average objects lost per month
+      const averageLostPerMonthQuery = `
+        SELECT COUNT(*)::float / EXTRACT(MONTH FROM AGE(MIN(data_perdido), CURRENT_DATE)) AS average_lost
+        FROM ObjetoPerdido
+      `;
+      const averageLostPerMonthResult = await pool.query(averageLostPerMonthQuery);
+  
+      // Average objects found per month
+      const averageFoundPerMonthQuery = `
+        SELECT COUNT(*)::float / EXTRACT(MONTH FROM AGE(MIN(data_achado), CURRENT_DATE)) AS average_found
+        FROM ObjetoAchado
+      `;
+      const averageFoundPerMonthResult = await pool.query(averageFoundPerMonthQuery);
+  
+      const response = {
+        averageObjectsLostPerMonth: parseFloat(averageLostPerMonthResult.rows[0].average_lost).toFixed(2),
+        averageObjectsFoundPerMonth: parseFloat(averageFoundPerMonthResult.rows[0].average_found).toFixed(2),
+      };
+  
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Error retrieving statistics:', error);
+      res.status(500).json({ error: 'Server error while retrieving statistics.' });
+    }
+  });
+  
 
 module.exports = router;
