@@ -15,7 +15,7 @@ const adminAuthMiddleware = async (req, res, next) => {
 
     // Check if the user is an admin
     const { rows } = await pool.query(
-      'SELECT * FROM Admin WHERE utilizador_id = $1',
+      'SELECT * FROM Utilizador WHERE firebase_uid = $1 AND isAdmin = TRUE',
       [firebaseUid]
     );
 

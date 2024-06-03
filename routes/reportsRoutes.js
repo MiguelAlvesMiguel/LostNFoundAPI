@@ -17,7 +17,7 @@ const sanitizeInput = (input) => {
   };
 
  //get reports of lost and found items
- router.get('/items', async (req, res) => {
+ router.get('/items',policeAuthMiddleware, async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Validate date format

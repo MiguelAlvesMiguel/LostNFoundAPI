@@ -37,12 +37,6 @@ CREATE TABLE MembroPolicia (
     historico_policia JSONB
 );
 
-CREATE TABLE Admin (
-    adminId SERIAL PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE
-);
-
 CREATE TABLE ObjetoPerdido (
     ID SERIAL PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
@@ -109,7 +103,6 @@ DELETE FROM Notificacao;
 DELETE FROM Leilao;
 DELETE FROM ObjetoAchado;
 DELETE FROM ObjetoPerdido;
-DELETE FROM Admin;
 DELETE FROM MembroPolicia;
 DELETE FROM PostoPolicia;
 DELETE FROM Utilizador;
@@ -117,7 +110,6 @@ DELETE FROM Pagamento;
 
 -- Reset sequences for all tables that have SERIAL primary key
 ALTER SEQUENCE postopolicia_id_seq RESTART WITH 1;
-ALTER SEQUENCE admin_adminid_seq RESTART WITH 1;
 ALTER SEQUENCE objetoperdido_id_seq RESTART WITH 1;
 ALTER SEQUENCE objetoachado_id_seq RESTART WITH 1;
 ALTER SEQUENCE leilao_id_seq RESTART WITH 1;
@@ -144,9 +136,6 @@ INSERT INTO PostoPolicia (morada) VALUES ('987 Secondary St, Lisbon');
 INSERT INTO MembroPolicia (utilizador_id, posto_policia, historico_policia) 
 VALUES 
 ('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
-
--- Insert into Admin, which references Utilizador
-INSERT INTO Admin (nome, utilizador_id) VALUES ('Admin Geral', '1MJlbIhHHMPOMgxzUgjx35Ijq9D3');
 
 -- Then we can populate ObjetoPerdido
 INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES
