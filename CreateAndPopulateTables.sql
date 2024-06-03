@@ -139,7 +139,8 @@ VALUES
     ('bofinha1', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'aa@gmail.com', '+351 923 456 789', TRUE, FALSE, FALSE),
     ('uid2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE, FALSE, FALSE),
     ('uid3', 'Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE, FALSE, FALSE),
-    ('uid4', 'Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE, FALSE, FALSE);
+    ('uid4', 'Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE, FALSE, FALSE),
+    ('admin2', 'Admin User', 'Masculino', '1980-01-01', '1234 Admin St, Admin City', 'admin@example.com', '+351 912 345 678', TRUE, TRUE, TRUE);
 
 -- Then insert into PostoPolicia since MembroPolicia references it
 INSERT INTO PostoPolicia
@@ -152,7 +153,9 @@ VALUES
 INSERT INTO MembroPolicia
     (utilizador_id, posto_policia, historico_policia)
 VALUES
-    ('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}');
+    ('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 1, '{"yearsService": 10, "commendations": ["Bravery", "Long Service"]}'),
+    ('admin2', 1, '{"yearsService": 5, "commendations": ["Leadership", "Exemplary Conduct"]}');
+-- password: AdminPassword123!
 
 -- Then we can populate ObjetoPerdido
 INSERT INTO ObjetoPerdido
