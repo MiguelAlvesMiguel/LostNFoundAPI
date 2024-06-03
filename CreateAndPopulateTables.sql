@@ -113,6 +113,7 @@ DELETE FROM Admin;
 DELETE FROM MembroPolicia;
 DELETE FROM PostoPolicia;
 DELETE FROM Utilizador;
+DELETE FROM Pagamento;
 
 -- Reset sequences for all tables that have SERIAL primary key
 ALTER SEQUENCE postopolicia_id_seq RESTART WITH 1;
@@ -123,16 +124,17 @@ ALTER SEQUENCE leilao_id_seq RESTART WITH 1;
 ALTER SEQUENCE licitacao_id_seq RESTART WITH 1;
 ALTER SEQUENCE notificacao_id_seq RESTART WITH 1;
 ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;
+ALTER SEQUENCE pagamento_id_seq RESTART WITH 1;
 
 -- Insert data into tables in the correct order
 
 -- First, insert into Utilizador since other tables reference it
 INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo, isCop, isAdmin) VALUES
 ('1MJlbIhHHMPOMgxzUgjx35Ijq9D3', 'John Doe', 'Masculino', '1990-01-15', '1234 Main St, Lisbon', 'hmmsm@example.com', '+351 912 345 678', TRUE,TRUE,TRUE),
-('bofinha1', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon','aa@gmail.com', '+351 923 456 789', TRUE),
-('uid2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE),
-('uid3', 'Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE),
-('uid4', 'Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE);
+('bofinha1', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon','aa@gmail.com', '+351 923 456 789', TRUE,FALSE,FALSE),
+('uid2', 'Jane Doe', 'Feminino', '1990-02-20', '5678 Side St, Lisbon', 'jane.doe@example.com', '+351 923 456 789', TRUE,FALSE,FALSE),
+('uid3', 'Alice Smith', 'Feminino', '1985-03-30', '7890 Center St, Lisbon', 'alice.smith@example.com', '+351 934 567 890', TRUE,FALSE,FALSE),
+('uid4', 'Bob Johnson', 'Masculino', '1975-04-25', '1011 Up St, Lisbon', 'bob.johnson@example.com', '+351 945 678 901', TRUE,FALSE,FALSE);
 
 -- Then insert into PostoPolicia since MembroPolicia references it
 INSERT INTO PostoPolicia (morada) VALUES ('987 Secondary St, Lisbon');
