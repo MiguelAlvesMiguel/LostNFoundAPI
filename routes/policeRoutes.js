@@ -8,6 +8,10 @@ const axios = require('axios');
 const auth0Config = require('../Auth0Config');
 const { getAuth } = require('firebase/auth');
 
+const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+
+
 const router = express.Router();
 
 // Sanitize input data

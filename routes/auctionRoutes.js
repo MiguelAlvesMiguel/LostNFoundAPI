@@ -3,6 +3,9 @@ const pool = require('../db');
 const { getAuth } = require('firebase/auth');
 const router = express.Router();
 const admin = require('firebase-admin');
+const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+const policeAuthMiddleware = require('../middlewares/policeAuth');
 
 
 const isAuthenticated = async (req, res, next) => {
@@ -402,7 +405,7 @@ router.post('/notify-auction-event', firebaseAuth, jwtCheck, async (req, res) =>
 });
 
 // Endpoint to register a possible owner of a found object
-router.post('/register-owner', firebaseAuth, policeAuth, async (req, res) => {
+router.post('/register-owner', firebaseAuth, policeAuthMiddleware, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
 
   try {
@@ -418,7 +421,7 @@ router.post('/register-owner', firebaseAuth, policeAuth, async (req, res) => {
 });
 
 // Endpoint to edit a possible owner of a found object
-router.put('/edit-owner', firebaseAuth, policeAuth, async (req, res) => {
+router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
 
   try {
@@ -434,7 +437,7 @@ router.put('/edit-owner', firebaseAuth, policeAuth, async (req, res) => {
 });
 
 // Endpoint to remove a possible owner of a found object
-router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuth, async (req, res) => {
+router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuthMiddleware, async (req, res) => {
   const { objetoAchadoId } = req.params;
 
   try {

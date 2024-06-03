@@ -1,9 +1,10 @@
 const express = require('express');
 const pool = require('../db');
-const { getAuth } = require('firebase/auth');
 const router = express.Router();
 const admin = require('firebase-admin');
 
+const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 
 const isAuthenticated = async (req, res, next) => {
   try {

@@ -6,6 +6,10 @@ const moment = require('moment');
 
 const router = express.Router();
 const admin = require('firebase-admin');
+const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+const policeAuthMiddleware = require('../middlewares/policeAuth');
+
 
 // Sanitize input data
 const sanitizeInput = (input) => {
