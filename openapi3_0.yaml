@@ -235,8 +235,8 @@ paths:
           description: Found item delivery registered
         '404':
           description: Item not found
-          
-  /posts:
+
+  /police/posts:
       get:
         tags:
           - Police Operations
@@ -381,6 +381,100 @@ paths:
                 properties:
                   error:
                     type: string
+
+  /police/users:
+    get:
+      tags:
+        - Police Operations
+      summary: Get a list of all active users
+      description: Allows police members to get a list of all active users to choose which reports to view. Only accessible to authenticated police members.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of all active users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    firebase_uid:
+                      type: string
+                      description: The Firebase UID of the user
+                      example: '2iqHRiu39lOI1lbwKq9f12q4dIB3'
+                    nome:
+                      type: string
+                      description: The name of the user
+                      example: 'John Doe'
+                    genero:
+                      type: string
+                      description: The gender of the user
+                      example: 'Masculino'
+                    data_nasc:
+                      type: string
+                      format: date
+                      description: The birth date of the user
+                      example: '1990-01-15'
+                    morada:
+                      type: string
+                      description: The address of the user
+                      example: '1234 Main St, Lisbon'
+                    email:
+                      type: string
+                      description: The email of the user
+                      example: 'john.doe@example.com'
+                    telemovel:
+                      type: string
+                      description: The phone number of the user
+                      example: '+351 912 345 678'
+                    historico:
+                      type: string
+                      description: The history of the user
+                      example: 'Some history text'
+                    ativo:
+                      type: boolean
+                      description: Whether the user is active
+                      example: true
+                    isCop:
+                      type: boolean
+                      description: Whether the user is a police member
+                      example: false
+                    isAdmin:
+                      type: boolean
+                      description: Whether the user is an admin
+                      example: false
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Forbidden Access restricted to police members only
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error
 
   /police/posts/delete/{postId}:
     delete:

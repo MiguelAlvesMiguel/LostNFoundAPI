@@ -480,5 +480,20 @@ router.get('/police/members', policeAuthMiddleware, async (req, res) => {
   }
 });
 
+//get a list of users so the police member can choose the reports to see.
+// cuz in the reports we have some endpoints that receive user id and the police member needs to know the id of the user
+//the police member is the only one that can see the reports of the users
+
+// Get a list of users for police members (protected route)
+router.get('/users', policeAuthMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM Utilizador WHERE ativo = TRUE');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;

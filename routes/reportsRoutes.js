@@ -159,7 +159,7 @@ router.get('/auctions', async (req, res) => {
 });
 
 // Get user activity report
-router.get('/user-activity/:userId', async (req, res) => {
+router.get('/user-activity/:userId',policeAuthMiddleware, async (req, res) => {
     const sanitizedUserId = sanitizeInput(req.params.userId);
     try {
         // Check if user exists in the database
@@ -193,7 +193,7 @@ router.get('/user-activity/:userId', async (req, res) => {
 
         // Query to get details of lost items
         const lostItemsDetailsResult = await pool.query(`
-            SELECT id, titulo, descricao, data_perda, localizacao
+            SELECT *
             FROM objetoperdido
             WHERE utilizador_id = $1 AND ativo = TRUE
             `, [sanitizedUserId]);
@@ -202,12 +202,11 @@ router.get('/user-activity/:userId', async (req, res) => {
 
         // Query to get details of auctions participated
         const auctionsDetailsResult = await pool.query(`
-            SELECT leilao.id, leilao.titulo, leilao.descricao, leilao.data_inicio, leilao.data_fim, leilao.valor_base, leilao.localizacao
-            FROM leilao
-            JOIN licitacao ON leilao.id = licitacao.leilao_id
-            WHERE licitacao.utilizador_id = $1
-            GROUP BY leilao.id
-            `, [sanitizedUserId]);
+        SELECT DISTINCT leilao.*
+        FROM leilao
+        JOIN licitacao ON leilao.id = licitacao.leilao_id
+        WHERE licitacao.utilizador_id = $1
+        `, [sanitizedUserId]);
 
         const auctionsDetails = auctionsDetailsResult.rows;
 
@@ -229,7 +228,7 @@ router.get('/user-activity/:userId', async (req, res) => {
 });
 
 // Define the GET endpoint to retrieve found objects by a police officer
-router.get('/reports/found-objects/:firebaseUid', policeAuthMiddleware, async (req, res) => {
+router.get('/found-objects/:firebaseUid', policeAuthMiddleware, async (req, res) => {
     const firebaseUid = sanitizeInput(req.params.firebaseUid);
   
     if (!firebaseUid) {
@@ -245,8 +244,8 @@ router.get('/reports/found-objects/:firebaseUid', policeAuthMiddleware, async (r
         return res.status(404).json({ error: 'User not found or inactive.' });
       }
   
-      // Check if the police member exists in the MembroPolicia table
-      const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = (SELECT id FROM Utilizador WHERE firebase_uid = $1)';
+      // Check if the police member exists in the MembroPolicia table and get the id of the police officer
+      const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = $1';
       const checkResult = await pool.query(checkQuery, [firebaseUid]);
   
       if (checkResult.rowCount === 0) {
@@ -257,7 +256,7 @@ router.get('/reports/found-objects/:firebaseUid', policeAuthMiddleware, async (r
   
       // Retrieve the found objects by the police officer
       const foundObjectsQuery = `
-        SELECT id, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, data_achado, titulo, descricao_curta, descricao, categoria, imageurl
+        SELECT *
         FROM ObjetoAchado
         WHERE policial_id = $1
       `;
@@ -273,25 +272,37 @@ router.get('/reports/found-objects/:firebaseUid', policeAuthMiddleware, async (r
   });
 
 // Define the GET endpoint to retrieve average statistics of lost and found objects per month
-router.get('/reports/statistics', policeAuthMiddleware, async (req, res) => {
+router.get('/statistics', policeAuthMiddleware, async (req, res) => {
     try {
-      // Average objects lost per month
-      const averageLostPerMonthQuery = `
-        SELECT COUNT(*)::float / EXTRACT(MONTH FROM AGE(MIN(data_perdido), CURRENT_DATE)) AS average_lost
+      // Calculate total objects lost and the earliest date of loss
+      const totalLostQuery = `
+        SELECT COUNT(*) AS total_lost, MIN(data_perdido) AS first_lost_date
         FROM ObjetoPerdido
       `;
-      const averageLostPerMonthResult = await pool.query(averageLostPerMonthQuery);
+      const totalLostResult = await pool.query(totalLostQuery);
+      const totalLost = parseInt(totalLostResult.rows[0].total_lost);
+      const firstLostDate = totalLostResult.rows[0].first_lost_date;
   
-      // Average objects found per month
-      const averageFoundPerMonthQuery = `
-        SELECT COUNT(*)::float / EXTRACT(MONTH FROM AGE(MIN(data_achado), CURRENT_DATE)) AS average_found
+      // Calculate total objects found and the earliest date of found
+      const totalFoundQuery = `
+        SELECT COUNT(*) AS total_found, MIN(data_achado) AS first_found_date
         FROM ObjetoAchado
       `;
-      const averageFoundPerMonthResult = await pool.query(averageFoundPerMonthQuery);
+      const totalFoundResult = await pool.query(totalFoundQuery);
+      const totalFound = parseInt(totalFoundResult.rows[0].total_found);
+      const firstFoundDate = totalFoundResult.rows[0].first_found_date;
+  
+      // Calculate the number of months between the earliest dates and the current date
+      const monthsSinceFirstLost = firstLostDate ? Math.ceil((new Date() - new Date(firstLostDate)) / (1000 * 60 * 60 * 24 * 30)) : 1;
+      const monthsSinceFirstFound = firstFoundDate ? Math.ceil((new Date() - new Date(firstFoundDate)) / (1000 * 60 * 60 * 24 * 30)) : 1;
+  
+      // Calculate averages
+      const averageObjectsLostPerMonth = totalLost / monthsSinceFirstLost;
+      const averageObjectsFoundPerMonth = totalFound / monthsSinceFirstFound;
   
       const response = {
-        averageObjectsLostPerMonth: parseFloat(averageLostPerMonthResult.rows[0].average_lost).toFixed(2),
-        averageObjectsFoundPerMonth: parseFloat(averageFoundPerMonthResult.rows[0].average_found).toFixed(2),
+        averageObjectsLostPerMonth: averageObjectsLostPerMonth.toFixed(2),
+        averageObjectsFoundPerMonth: averageObjectsFoundPerMonth.toFixed(2),
       };
   
       res.status(200).json(response);
@@ -299,7 +310,7 @@ router.get('/reports/statistics', policeAuthMiddleware, async (req, res) => {
       console.error('Error retrieving statistics:', error);
       res.status(500).json({ error: 'Server error while retrieving statistics.' });
     }
-  });
+  });  
   
 
 module.exports = router;
