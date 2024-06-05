@@ -87,7 +87,8 @@ router.get('/items/found', policeAuthMiddleware, async (req, res) => {
   }
 });
 
-// Define the POST endpoint to register a found item (protected route)
+
+// Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
 router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   // Extract details from the request body
   const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id } = req.body;
@@ -128,13 +129,38 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)
       RETURNING ID;
     `;
-    const values = [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, sanitizedDataAchado, sanitizedLocalizacaoAchado, sanitizedDataLimite, sanitizedValorMonetario || null, sanitizedPolicialId];
+    const values = [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, sanitizedDataAchado, JSON.stringify(sanitizedLocalizacaoAchado), sanitizedDataLimite, sanitizedValorMonetario || null, sanitizedPolicialId];
 
     // Execute the query
     const result = await pool.query(insertQuery, values);
 
     // Retrieve the ID of the newly inserted item
     const newItemId = result.rows[0].id;
+
+    // Check for matches in the ObjetoPerdido table
+    const matchQuery = `
+      SELECT id
+      FROM ObjetoPerdido
+      WHERE LOWER(descricao_curta) = LOWER($1)
+        AND LOWER(categoria) = LOWER($2)
+        AND (localizacao_perdido->>'latitude')::float = $3
+        AND (localizacao_perdido->>'longitude')::float = $4
+        AND ativo = true;
+    `;
+    const matchValues = [sanitizedDescricaoCurta, sanitizedCategoria, sanitizedLocalizacaoAchado.latitude, sanitizedLocalizacaoAchado.longitude];
+    const matchResult = await pool.query(matchQuery, matchValues);
+
+    if (matchResult.rows.length > 0) {
+      const lostItemId = matchResult.rows[0].id;
+
+      // Update the matched lost item to set ativo to false
+      const updateLostItemQuery = `
+        UPDATE ObjetoPerdido
+        SET ativo = false
+        WHERE id = $1;
+      `;
+      await pool.query(updateLostItemQuery, [lostItemId]);
+    }
 
     // Return a success message with the new item ID
     res.status(201).json({ message: 'Found item registered successfully', id: newItemId });
@@ -145,13 +171,14 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   }
 });
 
+
 // Define the POST endpoint to register a new police member (protected route)
 router.post('/members', adminAuthMiddleware, async (req, res) => {
   const { email, password, nome, genero, data_nasc, morada, telemovel, posto_policia, historico_policia } = req.body;
 
   const sanitizeInput2 = (input) => {
     if (typeof input === 'string') {
-      return input.replace(/[^a-zA-Z0-9\s]/g, '');
+      return input.replace(/[^a-zA-Z0-9\s@.]/g, ''); // Allow email characters
     } else if (typeof input === 'object' && input !== null) {
       const sanitizedObject = {};
       for (const key in input) {
@@ -188,11 +215,11 @@ router.post('/members', adminAuthMiddleware, async (req, res) => {
 
     // Prepare the SQL query to insert a new police member
     const insertQuery = `
-      INSERT INTO MembroPolicia (nome, posto_policia, historico_policia)
+      INSERT INTO MembroPolicia (utilizador_id, posto_policia, historico_policia)
       VALUES ($1, $2, $3::jsonb)
       RETURNING ID;
     `;
-    const values = [sanitizedNome, sanitizedPosto, sanitizedHistorico];
+    const values = [user, sanitizedPosto, sanitizedHistorico];
 
     // Execute the query with parameterized values to prevent SQL injection
     const result = await pool.query(insertQuery, values);
@@ -219,10 +246,10 @@ router.post('/members', adminAuthMiddleware, async (req, res) => {
   }
 });
 
-// Define the PUT endpoint to edit an existing police member
-router.put('/members/edit/:firebaseUid', policeAuthMiddleware, async (req, res) => {
+// Define the PUT endpoint to edit an existing police member (protected route)
+router.put('/members/edit/:firebaseUid', adminAuthMiddleware, async (req, res) => {
   const { firebaseUid } = req.params;
-  const { nome, posto_policia, historico_policia } = req.body;
+  const { posto_policia, historico_policia } = req.body;
 
   const sanitizeInput2 = (input) => {
     if (typeof input === 'string') {
@@ -238,43 +265,45 @@ router.put('/members/edit/:firebaseUid', policeAuthMiddleware, async (req, res) 
   };
 
   const sanitizedFirebaseUid = sanitizeInput2(firebaseUid);
-  const sanitizedNome = sanitizeInput2(nome);
-  const sanitizedPosto = parseInt(posto_policia);
+  const sanitizedPosto = posto_policia ? parseInt(sanitizeInput2(posto_policia)) : null;
   let sanitizedHistorico = null;
 
   if (historico_policia) {
-    sanitizedHistorico = sanitizeInput2(historico_policia);
-  }
-
-  // Validate the required fields
-  if (!nome || !posto_policia) {
-    return res.status(400).json({ error: 'Invalid input: missing required fields "nome" or "posto_policia".' });
+    sanitizedHistorico = JSON.stringify(sanitizeInput2(historico_policia));
   }
 
   try {
     // Check if the user exists in the Utilizador table and is active
-    const userCheckQuery = 'SELECT 1 FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
+    const userCheckQuery = 'SELECT firebase_uid FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
     const userCheckResult = await pool.query(userCheckQuery, [sanitizedFirebaseUid]);
 
     if (userCheckResult.rowCount === 0) {
       return res.status(404).json({ error: 'User not found or inactive.' });
     }
 
+    const userId = userCheckResult.rows[0].firebase_uid;
+
+    console.log('userId:', userId);
+
     // Check if the police member exists in the MembroPolicia table
-    const checkQuery = 'SELECT 1 FROM MembroPolicia WHERE utilizador_id = $1';
-    const checkResult = await pool.query(checkQuery, [sanitizedFirebaseUid]);
+    const checkQuery = 'SELECT posto_policia FROM MembroPolicia WHERE utilizador_id = $1';
+    const checkResult = await pool.query(checkQuery, [userId]);
+
+    console.log('checkResult:', checkResult.rows);
 
     if (checkResult.rowCount === 0) {
       return res.status(404).json({ error: 'Police member not found.' });
     }
 
+    const currentPosto = checkResult.rows[0].posto_policia;
+
     // Prepare the SQL query to update the police member
     const updateQuery = `
       UPDATE MembroPolicia
-      SET nome = $1, posto_policia = $2, historico_policia = $3::jsonb
-      WHERE utilizador_id = $4
+      SET posto_policia = COALESCE($1, posto_policia), historico_policia = COALESCE($2::jsonb, historico_policia)
+      WHERE utilizador_id = $3
     `;
-    const values = [sanitizedNome, sanitizedPosto, sanitizedHistorico || null, sanitizedFirebaseUid];
+    const values = [sanitizedPosto, sanitizedHistorico, userId];
 
     // Execute the query with parameterized values to prevent SQL injection
     await pool.query(updateQuery, values);
@@ -289,8 +318,8 @@ router.put('/members/edit/:firebaseUid', policeAuthMiddleware, async (req, res) 
 });
 
 
-// Define the DELETE endpoint to remove a police member
-router.delete('/members/delete/:firebaseUid', policeAuthMiddleware, async (req, res) => {
+// Define the DELETE endpoint to remove a police member (protected route)
+router.delete('/members/delete/:firebaseUid', adminAuthMiddleware, async (req, res) => {
   const firebaseUid = sanitizeInput(req.params.firebaseUid);
 
   if (!firebaseUid) {
@@ -314,11 +343,9 @@ router.delete('/members/delete/:firebaseUid', policeAuthMiddleware, async (req, 
       return res.status(404).json({ error: 'Police member not found.' });
     }
 
-    const memberId = checkResult.rows[0].id;
-
     // Prepare the SQL query to delete the police member
     const deletePoliceMemberQuery = 'DELETE FROM MembroPolicia WHERE utilizador_id = $1';
-    await pool.query(deletePoliceMemberQuery, [utilizadorId]);
+    await pool.query(deletePoliceMemberQuery, [firebaseUid]);
 
     // Prepare the SQL query to delete the user from Utilizador table
     const deleteUserQuery = 'DELETE FROM Utilizador WHERE firebase_uid = $1';
@@ -334,7 +361,7 @@ router.delete('/members/delete/:firebaseUid', policeAuthMiddleware, async (req, 
 });
 
 // Define the POST endpoint to register a new police post (protected route)
-router.post('/posts', policeAuthMiddleware, async (req, res) => {
+router.post('/posts', adminAuthMiddleware, async (req, res) => {
   // Extract the relevant field from the request body
   const { morada } = req.body;
 
@@ -370,8 +397,8 @@ router.post('/posts', policeAuthMiddleware, async (req, res) => {
 });
   
 
-// Define the PUT endpoint to edit an existing police post
-router.put('/posts/edit/:postId', policeAuthMiddleware, async (req, res) => {
+// Define the PUT endpoint to edit an existing police post (protected route)
+router.put('/posts/edit/:postId', adminAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
   const { morada } = req.body;
 
@@ -410,8 +437,8 @@ router.put('/posts/edit/:postId', policeAuthMiddleware, async (req, res) => {
   }
 });
 
-// Define the DELETE endpoint to remove a police post
-router.delete('/posts/delete/:postId', policeAuthMiddleware, async (req, res) => {
+// Define the DELETE endpoint to remove a police post (protected route)
+router.delete('/posts/delete/:postId', adminAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
 
   if (isNaN(postId)) {
@@ -442,14 +469,13 @@ router.delete('/posts/delete/:postId', policeAuthMiddleware, async (req, res) =>
   }
 });
 
-// Define the GET endpoint to retrieve all police posts
-router.get('/posts', policeAuthMiddleware, async (req, res) => {
+// Define the GET endpoint to retrieve all police posts (protected route)
+router.get('/posts', adminAuthMiddleware, async (req, res) => {
   try {
     // Query to retrieve all police posts
     const policePostsQuery = `
-      SELECT id, nome, localizacao
+      SELECT *
       FROM PostoPolicia
-      ORDER BY nome
     `;
     const policePostsResult = await pool.query(policePostsQuery);
 
@@ -460,15 +486,16 @@ router.get('/posts', policeAuthMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Server error while retrieving police posts.' });
   }
 });
-// Define the GET endpoint to retrieve all police members
-router.get('/police/members', policeAuthMiddleware, async (req, res) => {
+
+// Define the GET endpoint to retrieve all police members (protected route)
+router.get('/members', adminAuthMiddleware, async (req, res) => {
   try {
     // Query to retrieve all police members
     const policeMembersQuery = `
-      SELECT mp.id, mp.nome, mp.posto_policia, mp.historico_policia, u.firebase_uid
+      SELECT mp.id,mp.utilizador_id, mp.posto_policia, mp.historico_policia, u.nome, u.genero, u.data_nasc, u.morada, u.email, u.telemovel
       FROM MembroPolicia mp
-      JOIN Utilizador u ON mp.utilizador_id = u.id
-      ORDER BY mp.nome
+      JOIN Utilizador u ON mp.utilizador_id = u.firebase_uid
+      ORDER BY mp.id
     `;
     const policeMembersResult = await pool.query(policeMembersQuery);
 

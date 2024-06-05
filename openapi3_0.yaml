@@ -518,16 +518,16 @@ paths:
                   error:
                     type: string
 
-
-  /members:
+  /police/members:
     get:
+      summary: Retrieve all police members
       tags:
         - Police Operations
-      summary: Retrieve all police members
-      description: Fetches a list of all police members.
+      security:
+        - BearerAuth: []
       responses:
         '200':
-          description: Successful retrieval of police members
+          description: A list of police members
           content:
             application/json:
               schema:
@@ -537,19 +537,37 @@ paths:
                   properties:
                     id:
                       type: integer
-                      description: The ID of the police member
-                    nome:
+                      example: 1
+                    utilizador_id:
                       type: string
-                      description: The name of the police member
+                      example: "82DAQSh6eXMbnN90lLhIL0Ks8R12"
                     posto_policia:
                       type: integer
-                      description: The ID of the police station the member belongs to
+                      example: 1
                     historico_policia:
                       type: object
-                      description: The history of the police member
-                    firebase_uid:
+                      example: 
+                        yearsService: 10
+                        commendations: ["Bravery", "Long Service"]
+                    nome:
                       type: string
-                      description: The Firebase UID of the user
+                      example: "John Doe"
+                    genero:
+                      type: string
+                      example: "Masculino"
+                    data_nasc:
+                      type: string
+                      format: date
+                      example: "1990-01-01"
+                    morada:
+                      type: string
+                      example: "1234 Main St, Lisbon"
+                    email:
+                      type: string
+                      example: "johndoe@example.com"
+                    telemovel:
+                      type: string
+                      example: "+351 912 345 678"
         '500':
           description: Server error while retrieving police members
           content:
@@ -559,12 +577,14 @@ paths:
                 properties:
                   error:
                     type: string
-                    example: Server error while retrieving police members.
+                    example: Server error while retrieving police members
     post:
       tags:
         - Police Operations
       summary: Register a new police member
       description: Adds a new member to the police database, registering them in both the `Utilizador` and `MembroPolicia` tables. The system automatically generates a unique ID for each new member. Requires admin authentication.
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -642,79 +662,79 @@ paths:
                   error:
                     type: string
 
-  
   /police/members/edit/{firebaseUid}:
-    put:
-      summary: Edit a police member and associated user details
-      parameters:
-        - name: firebaseUid
-          in: path
-          required: true
-          description: The Firebase UID of the police member
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
+      put:
+        summary: Edit a police member's details
+        tags:
+          - Police Operations
+        security:
+          - BearerAuth: []
+        parameters:
+          - name: firebaseUid
+            in: path
+            required: true
+            description: The Firebase UID of the police member
             schema:
-              type: object
-              properties:
-                nome:
-                  type: string
-                  description: The name of the police member
-                  example: "John Doe"
-                posto_policia:
-                  type: integer
-                  description: The police station ID
-                  example: 1
-                historico_policia:
+              type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posto_policia:
+                    type: integer
+                    description: The ID of the police station
+                  historico_policia:
+                    type: object
+                    description: A JSON object detailing the police member's history
+                    example:
+                      yearsService: 12
+                      commendations: 
+                        - Bravery
+                        - Excellence
+        responses:
+          '200':
+            description: Police member updated successfully
+            content:
+              application/json:
+                schema:
                   type: object
-                  description: The history of the police member
-                  additionalProperties:
-                    type: string
-                  example: {"years_of_service": "10", "awards": "medal of valor"}
-      responses:
-        '200':
-          description: Successful update
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Police member updated successfully
-        '400':
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: missing required fields "nome" or "posto_policia".
-        '404':
-          description: Not found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: One of 'User not found or inactive.' or 'Police member not found.'
-        '500':
-          description: Server error while updating police member
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Server error while updating police member.
+                  properties:
+                    message:
+                      type: string
+                      example: Police member updated successfully
+          '400':
+            description: Invalid input
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Invalid input
+          '404':
+            description: User not found or inactive / Police member not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: User not found or inactive / Police member not found
+          '500':
+            description: Server error while updating police member
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Server error while updating police member
 
   /police/members/delete/{firebaseUid}:
     delete:
@@ -773,8 +793,8 @@ paths:
     post:
       tags:
         - Police Operations
-      summary: Register a found item by police
-      description: This endpoint allows police to register items that have been found. It requires detailed item information and returns an ID of the newly registered item if successful.
+      summary: Register a found item by police. if a lost item is found, it will be marked as inactive.
+      description: This endpoint allows police to register items that have been found. It requires detailed item information and returns an ID of the newly registered item if successful. If there is a correspondent lost item, it will set its ativo field to false.
       requestBody:
         required: true
         content:
