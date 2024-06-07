@@ -42,6 +42,7 @@ router.get('/lost', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 //Get especific lost item
 router.get('/lost/:itemId', async (req, res) => {
   const { itemId } = req.params;
