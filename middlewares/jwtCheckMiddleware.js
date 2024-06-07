@@ -8,12 +8,15 @@ const jwtCheck = auth({
 });
 
 const jwtCheckMiddleware = async (req, res, next) => {
+  // Log headers for debugging
+  console.log('HEADERS (jwtCheckMiddleware):', req.headers);
+
   const token = req.headers['x-auth0-token'];
-  //log token
-  console.log(token);
   if (!token) return res.status(401).send('Unauthorized! Missing JWT token!');
 
-  req.headers.authorization = `Bearer ${token}`; // Temporarily set token for middleware processing
+  // Temporarily set the authorization header for the middleware processing
+  const originalAuthorization = req.headers.authorization;
+  req.headers.authorization = `Bearer ${token}`;
 
   try {
     await new Promise((resolve, reject) => {
@@ -27,8 +30,10 @@ const jwtCheckMiddleware = async (req, res, next) => {
   } catch (error) {
     console.error('Error verifying Auth0 token:', error);
     res.status(401).send('Unauthorized');
+  } finally {
+    // Restore the original authorization header
+    req.headers.authorization = originalAuthorization;
   }
 };
-
 
 module.exports = jwtCheckMiddleware;

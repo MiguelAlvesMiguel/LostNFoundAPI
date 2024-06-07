@@ -1,8 +1,13 @@
+// middlewares/doubleAuthMiddleware.js
 const firebaseAuthMiddleware = require('./firebaseAuthMiddleware');
 const jwtCheckMiddleware = require('./jwtCheckMiddleware');
 
 const doubleAuthMiddleware = async (req, res, next) => {
   try {
+    // Log headers for debugging
+    console.log('HEADERS (doubleAuthMiddleware):', req.headers);
+
+    // Handle Firebase token verification
     await new Promise((resolve, reject) => {
       firebaseAuthMiddleware(req, res, (err) => {
         if (err) reject(err);
@@ -10,6 +15,7 @@ const doubleAuthMiddleware = async (req, res, next) => {
       });
     });
 
+    // Handle Auth0 token verification
     await new Promise((resolve, reject) => {
       jwtCheckMiddleware(req, res, (err) => {
         if (err) reject(err);

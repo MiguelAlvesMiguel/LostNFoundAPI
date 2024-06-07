@@ -1,10 +1,15 @@
 // middlewares/policeAuth.js
-const pool = require('../db'); // Assuming this is your configured PostgreSQL connection pool
-const admin = require('../middlewares/firebaseAdmin');
+const pool = require('../db');
+const admin = require('./firebaseAdmin');
 
 // Middleware to check if user is a police member
 const policeAuthMiddleware = async (req, res, next) => {
+  // Log headers for debugging
+  console.log('HEADERS (policeAuthMiddleware):', req.headers);
+
   const idToken = req.headers.authorization?.split('Bearer ')[1];
+  console.log("Bearer:", idToken);  // Debug log
+
   if (!idToken) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
