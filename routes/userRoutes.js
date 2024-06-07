@@ -17,34 +17,49 @@ router.get('/', (req, res) => {
   res.status(200).json({ message: 'Users endpoint working!' });
 });
 
-router.post('/register', async (req, res) => {
-  const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
+router.post('/register',
+  [
+    body('email').isEmail().withMessage('Invalid email').normalizeEmail(),
+    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long').trim().escape(),
+    body('nome').isLength({ min: 1 }).withMessage('Name is required').trim().escape(),
+    body('genero').isIn(['Masculino', 'Feminino', 'Outro']).withMessage('Invalid gender').trim().escape(),
+    body('data_nasc').isDate().withMessage('Invalid date of birth').toDate(),
+    body('morada').isLength({ min: 1 }).withMessage('Address is required').trim().escape(),
+    body('telemovel').isMobilePhone('pt-PT').withMessage('Invalid phone number').trim().escape(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    const { email, password, nome, genero, data_nasc, morada, telemovel } = req.body;
 
-    await pool.query(
-      'INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
-    );
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
-      grant_type: 'client_credentials',
-      client_id: auth0Config.clientId,
-      client_secret: auth0Config.clientSecret,
-      audience: auth0Config.audience
-    });
+      await pool.query(
+        'INSERT INTO Utilizador (firebase_uid, nome, genero, data_nasc, morada, email, telemovel, ativo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [user.uid, nome, genero, data_nasc, morada, email, telemovel, true]
+      );
 
-    const accessToken = tokenResponse.data.access_token;
+      const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
+        grant_type: 'client_credentials',
+        client_id: auth0Config.clientId,
+        client_secret: auth0Config.clientSecret,
+        audience: auth0Config.audience
+      });
 
-    res.status(201).json({ message: 'User registered successfully!', user, accessToken });
-  } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(400).json({ error: error.message });
+      const accessToken = tokenResponse.data.access_token;
+
+      res.status(201).json({ message: 'User registered successfully!', user, accessToken });
+    } catch (error) {
+      console.error('Error registering user:', error);
+      res.status(400).json({ error: error.message });
+    }
   }
-});
-
+);
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 

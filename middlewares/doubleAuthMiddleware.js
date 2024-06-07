@@ -15,6 +15,8 @@ const doubleAuthMiddleware = async (req, res, next) => {
       });
     });
 
+    console.log('Firebase token verified:', req.user);
+
     // Handle Auth0 token verification
     await new Promise((resolve, reject) => {
       jwtCheckMiddleware(req, res, (err) => {

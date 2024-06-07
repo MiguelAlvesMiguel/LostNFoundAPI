@@ -42,8 +42,6 @@ router.get('/test', doubleAuthMiddleware  , async (req, res) => {
 
 // Create a new auction if it doesn't already exist
 router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, async (req, res) => {
-  //PRINT ALL HEADERS
-
   const { objeto_achado_id, data_inicio, data_fim, localizacao, valor_base } = req.body;
   
   try {
