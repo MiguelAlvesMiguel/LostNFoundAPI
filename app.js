@@ -16,7 +16,7 @@ const itemRoutes = require('./routes/itemRoutes');
 const auctionRoutes = require('./routes/auctionRoutes');
 const policeRoutes = require('./routes/policeRoutes');
 const reportsRoutes = require('./routes/reportsRoutes');
-const paymentsRoutes = require('./routes/paymentRoutes');
+const stripeRoutes = require('./routes/stripeRoutes');
 
 // Prefix all routes with /v1/
 app.use('/v1/users', userRoutes);
@@ -24,9 +24,9 @@ app.use('/v1/items', itemRoutes);
 app.use('/v1/auctions', auctionRoutes);
 app.use('/v1/police', policeRoutes);
 app.use('/v1/reports', reportsRoutes);
-app.use('/v1/payments', paymentsRoutes);
+app.use('/v1/stripe', stripeRoutes);
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3995;
 
 app.get('/', (req, res) => {
   res.status(200).send(`Welcome to ReClaim API from server ${os.hostname()}!`);
