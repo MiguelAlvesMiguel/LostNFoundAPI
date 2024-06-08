@@ -6,7 +6,8 @@ const admin = require('firebase-admin');
 const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 const policeAuthMiddleware = require('../middlewares/policeAuth');
-
+const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
+const db = require('../db'); // Adjust the path as necessary
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -33,33 +34,40 @@ const isAuthenticated = async (req, res, next) => {
 const sanitizeInput = (input) => {
   return input.replace(/[^a-zA-Z0-9\s]/g, '');
 };
+//Test endpoint to test middlewares 
 
-// Register, edit, and remove an auction for an object (RF-18)
-router.post('/auctions', isAuthenticated, async (req, res) => {
-  const { objetoAchadoId, dataInicio, dataFim, localizacao, ativo } = req.body;
-  const userId = req.userId;
+router.get('/test', doubleAuthMiddleware  , async (req, res) => {
+  res.status(200).json({ message: 'Test endpoint with firebase+auth0 working!' });
+});
 
-  // Input validation and sanitization
-  if (!objetoAchadoId || !dataInicio || !dataFim || !localizacao || ativo === undefined) {
-    console.log('Invalid input data');
-    return res.status(400).json({ error: 'Invalid input data' });
-  }
-
-  const sanitizedLocalizacao = sanitizeInput(localizacao);
-
+// Create a new auction if it doesn't already exist
+router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, async (req, res) => {
+  const { objeto_achado_id, data_inicio, data_fim, localizacao, valor_base } = req.body;
+  
   try {
-    const result = await pool.query(
-      'INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, ativo) VALUES ($1, $2, $3, $4, $5) RETURNING ID',
-      [objetoAchadoId, dataInicio, dataFim, sanitizedLocalizacao, ativo]
-    );
-    const auctionId = result.rows[0].id;
-    console.log('Auction registered successfully with ID:', auctionId);
-    res.status(201).json({ message: 'Auction registered successfully', auctionId });
+      // Check if an auction already exists for this object
+      const existingAuction = await db.query(
+          'SELECT * FROM Leilao WHERE objeto_achado_id = $1',
+          [objeto_achado_id]
+      );
+
+      if (existingAuction.rows.length > 0) {
+          return res.status(400).json({ message: 'Auction already exists for this item' });
+      }
+
+      // Create a new auction
+      const newAuction = await db.query(
+          'INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, valor_base, ativo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [objeto_achado_id, data_inicio, data_fim, localizacao, valor_base, true]
+      );
+
+      res.status(201).json(newAuction.rows[0]);
   } catch (error) {
-    console.error('Error registering auction:', error);
-    res.status(500).json({ error: 'Internal server error' });
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
