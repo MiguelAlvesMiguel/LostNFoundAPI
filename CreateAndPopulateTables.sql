@@ -1,5 +1,6 @@
 -- Drop existing tables
 DROP TABLE IF EXISTS Notificacao;
+DROP TABLE IF EXISTS Pagamento;
 DROP TABLE IF EXISTS Licitacao;
 DROP TABLE IF EXISTS Leilao;
 DROP TABLE IF EXISTS ObjetoAchado;
@@ -8,7 +9,6 @@ DROP TABLE IF EXISTS Admin;
 DROP TABLE IF EXISTS MembroPolicia;
 DROP TABLE IF EXISTS PostoPolicia;
 DROP TABLE IF EXISTS Utilizador;
-DROP TABLE IF EXISTS Pagamento;
 
 -- Create tables
 CREATE TABLE Utilizador

@@ -6,6 +6,7 @@ const pool = require('../db');
 const auth0Config = require('../Auth0Config');
 const axios = require('axios');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 
 const firebaseAuthMiddleware = require('../middlewares/firebaseAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
