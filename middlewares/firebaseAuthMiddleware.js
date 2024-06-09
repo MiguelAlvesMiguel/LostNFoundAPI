@@ -5,17 +5,21 @@ const firebaseAuthMiddleware = async (req, res, next) => {
   // Log headers for debugging
   console.log('HEADERS (firebaseAuthMiddleware):', req.headers);
   
-  const idToken = req.headers.authorization?.split('Bearer ')[1];
-  if (!idToken) {
-    return res.status(401).json({ error: 'Unauthorized! MISSING BEARER TOKEN' });
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).send('Authorization (Bearer ) header missing');
   }
 
+  const token = authHeader.split(' ')[1];
+
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await admin.auth().verifyIdToken(token);
     req.user = decodedToken;
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    console.error('Error verifying Firebase token:', error);
+    res.status(401).send('Invalid token');
   }
 };
 
