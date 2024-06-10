@@ -68,15 +68,17 @@ router.get('/lost/:itemId', async (req, res) => {
 
 // Register a lost item (RF-06)
 router.post('/lost', isAuthenticated, async (req, res) => {
-  const { descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
+  const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
   const userId = req.userId;
 
   // Input validation and sanitization
-  if (!descricao || !categoria || !data_perdido || !localizacao_perdido || ativo === undefined) {
+  if (!titulo || !descricao_curta || !descricao || !categoria || !data_perdido || !localizacao_perdido || ativo === undefined) {
     console.log('Invalid input data');
     return res.status(400).json({ error: 'Invalid input data' });
   }
 
+  const sanitizedTitulo = sanitizeInput(titulo);
+  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
   const sanitizedDescricao = sanitizeInput(descricao);
   const sanitizedCategoria = sanitizeInput(categoria);
   const sanitizedLocalizacao = {
@@ -86,8 +88,8 @@ router.post('/lost', isAuthenticated, async (req, res) => {
 
   try {
     const result = await pool.query(
-      'INSERT INTO ObjetoPerdido (descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING ID',
-      [sanitizedDescricao, sanitizedCategoria, data_perdido, JSON.stringify(sanitizedLocalizacao), ativo, userId]
+      'INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID',
+      [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, data_perdido, JSON.stringify(sanitizedLocalizacao), ativo, userId]
     );
     const itemId = result.rows[0].id;
     console.log('Lost item registered successfully with ID:', itemId);
@@ -97,6 +99,7 @@ router.post('/lost', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // Edit details of a lost item (RF-06)
 router.put('/lost/:itemId', isAuthenticated, async (req, res) => {
