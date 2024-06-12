@@ -66,6 +66,8 @@ CREATE TABLE ObjetoAchado
     ativo BOOLEAN NOT NULL,
     valor_monetario DECIMAL(10, 2),
     policial_id INT REFERENCES MembroPolicia(ID),
+    claimant_id VARCHAR(255) REFERENCES Utilizador(firebase_uid) DEFAULT NULL,
+    data_claimed DATE DEFAULT NULL,
     imageURL TEXT
 );
 
@@ -165,7 +167,7 @@ VALUES
 
 -- Populate ObjetoAchado
 INSERT INTO ObjetoAchado
-    (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL)
+    (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id,imageURL)
 VALUES
     ('Found Keychain', 'Keychain with several keys', 'A keychain with several keys found near a park.', 'Personal Items', '2024-05-02', '{"latitude": 48.8566, "longitude": 2.3522}', '2024-06-02', TRUE, 10.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),
     ('Found Laptop', 'Apple MacBook Pro', 'An Apple MacBook Pro found in a coffee shop.', 'Electronics', '2024-05-06', '{"latitude": 35.6895, "longitude": 139.6917}', '2024-06-06', FALSE, 2000.00, 1, 'https://i.insider.com/602ee9ced3ad27001837f2ac?width=700'),

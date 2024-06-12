@@ -19,6 +19,17 @@ const sanitizeInput = (input) => {
   return input.replace(/[^a-zA-Z0-9\s]/g, '');
 };
 
+//sanitize url
+const sanitizeURL = (url) => {
+  try {
+    const parsedUrl = new URL(url);
+    const sanitizedUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+    return sanitizedUrl.replace(/[^a-zA-Z0-9/:.?&=_-]/g, ''); // Further sanitize the URL
+  } catch (e) {
+    throw new Error('Invalid URL');
+  }
+};
+
 // Define the PUT endpoint to claim a found item
 router.put('/items/:itemId/claim', policeAuthMiddleware, async (req, res) => {
   const itemId = parseInt(req.params.itemId);
@@ -34,6 +45,7 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, async (req, res) => {
   }
   
   const sanitizedClaimantId = sanitizeInput(claimantId);
+  const currentDate = new Date().toISOString().split('T')[0]; // Get the current date in YYYY-MM-DD format
 
   try {
     // Begin transaction
@@ -54,7 +66,7 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, async (req, res) => {
     }
 
     // Update the item to be claimed
-    await pool.query('UPDATE ObjetoAchado SET ativo = false WHERE ID = $1', [itemId]);
+    await pool.query('UPDATE ObjetoAchado SET ativo = false, claimant_id = $1, data_claimed = $2  WHERE ID = $3', [sanitizedClaimantId,currentDate,itemId]);
 
     // Commit transaction
     await pool.query('COMMIT');
@@ -91,7 +103,7 @@ router.get('/items/found', policeAuthMiddleware, async (req, res) => {
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
 router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   // Extract details from the request body
-  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id } = req.body;
+  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id,imageURL} = req.body;
 
   // Validate required fields to ensure no critical data is missing
   if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !policial_id) {
@@ -103,6 +115,7 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   const sanitizedDescricao = sanitizeInput(descricao);
   const sanitizedCategoria = sanitizeInput(categoria);
   const sanitizedDataAchado = new Date(data_achado);
+  const sanitizedImageURL = sanitizeURL(imageURL);
 
   let sanitizedLocalizacaoAchado;
   try {
@@ -125,11 +138,11 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   try {
     // Insert the new found item into the ObjetoAchado table
     const insertQuery = `
-      INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9)
+      INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10)
       RETURNING ID;
     `;
-    const values = [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, sanitizedDataAchado, JSON.stringify(sanitizedLocalizacaoAchado), sanitizedDataLimite, sanitizedValorMonetario || null, sanitizedPolicialId];
+    const values = [sanitizedTitulo, sanitizedDescricaoCurta, sanitizedDescricao, sanitizedCategoria, sanitizedDataAchado, JSON.stringify(sanitizedLocalizacaoAchado), sanitizedDataLimite, sanitizedValorMonetario || null, sanitizedPolicialId, sanitizedImageURL];
 
     // Execute the query
     const result = await pool.query(insertQuery, values);

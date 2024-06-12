@@ -831,6 +831,9 @@ paths:
                 policial_id:
                   type: integer
                   description: The ID of the police officer registering the found item.
+                imageurl:
+                  type: string
+                  description: The URL of the image of the found item.
       responses:
         '201':
           description: Found item registered successfully. Returns the ID of the newly registered item.
@@ -845,7 +848,7 @@ paths:
       tags:
         - Police Operations
       summary: Claim a found item
-      description: Claims an active item as found by updating its status.
+      description: Claims an active item as found by updating its ativo attribute, the claimantId and the data_claimed in the table objetoAchado.
       parameters:
         - in: path
           name: itemId
