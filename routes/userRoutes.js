@@ -10,6 +10,7 @@ const { body, validationResult } = require('express-validator');
 
 const firebaseAuthMiddleware = require('../middlewares/firebaseAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
 
 const auth = getAuth(firebaseApp); // Get the Auth instance using the initialized Firebase App
 
@@ -106,7 +107,7 @@ router.post('/google-signin', async (req, res) => {
 });
 
 // Use FirebaseAuthMiddleware for Firebase tokens
-router.get('/me', firebaseAuthMiddleware, async (req, res) => {
+router.get('/me', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {

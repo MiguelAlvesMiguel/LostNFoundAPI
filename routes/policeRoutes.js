@@ -317,39 +317,33 @@ router.put('/members/edit/:firebaseUid', adminAuthMiddleware, async (req, res) =
   }
 });
 
-
+//Tive que mudar isto pk no frontend n dá jeito usar o firebase uid pk é um bocado sensível acho eu
 // Define the DELETE endpoint to remove a police member (protected route)
-router.delete('/members/delete/:firebaseUid', adminAuthMiddleware, async (req, res) => {
-  const firebaseUid = sanitizeInput(req.params.firebaseUid);
+router.delete('/members/:id', adminAuthMiddleware, async (req, res) => {
+  const policeMemberId = parseInt(req.params.id, 10);
 
-  if (!firebaseUid) {
-    return res.status(400).json({ error: 'Invalid firebaseUid. It must be a valid string.' });
+  if (isNaN(policeMemberId)) {
+    return res.status(400).json({ error: 'Invalid id. It must be a number.' });
   }
 
   try {
-    // Check if the user exists in the Utilizador table and is active
-    const userCheckQuery = 'SELECT 1 FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
-    const userCheckResult = await pool.query(userCheckQuery, [firebaseUid]);
-
-    if (userCheckResult.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found or inactive.' });
-    }
-
     // Check if the police member exists in the MembroPolicia table
-    const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = $1';
-    const checkResult = await pool.query(checkQuery, [firebaseUid]);
+    const checkQuery = 'SELECT utilizador_id FROM MembroPolicia WHERE id = $1';
+    const checkResult = await pool.query(checkQuery, [policeMemberId]);
 
     if (checkResult.rowCount === 0) {
       return res.status(404).json({ error: 'Police member not found.' });
     }
 
+    const utilizadorId = checkResult.rows[0].utilizador_id;
+
     // Prepare the SQL query to delete the police member
-    const deletePoliceMemberQuery = 'DELETE FROM MembroPolicia WHERE utilizador_id = $1';
-    await pool.query(deletePoliceMemberQuery, [firebaseUid]);
+    const deletePoliceMemberQuery = 'DELETE FROM MembroPolicia WHERE id = $1';
+    await pool.query(deletePoliceMemberQuery, [policeMemberId]);
 
     // Prepare the SQL query to delete the user from Utilizador table
     const deleteUserQuery = 'DELETE FROM Utilizador WHERE firebase_uid = $1';
-    await pool.query(deleteUserQuery, [firebaseUid]);
+    await pool.query(deleteUserQuery, [utilizadorId]);
 
     // Return a 200 response to indicate successful deletion
     res.status(200).json({ message: 'Police member and associated user deleted successfully' });
@@ -438,7 +432,7 @@ router.put('/posts/edit/:postId', adminAuthMiddleware, async (req, res) => {
 });
 
 // Define the DELETE endpoint to remove a police post (protected route)
-router.delete('/posts/delete/:postId', adminAuthMiddleware, async (req, res) => {
+router.delete('/posts/:postId', adminAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
 
   if (isNaN(postId)) {
