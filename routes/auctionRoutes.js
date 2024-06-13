@@ -18,7 +18,7 @@ const isAuthenticated = async (req, res, next) => {
       console.log('Verifying ID token...');
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       console.log('ID token is valid:', decodedToken);
-      req.userId = decodedToken.uid;
+      req.user.uid; = decodedToken.uid;
       return next();
     }
 
@@ -72,7 +72,7 @@ router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, async (req, 
 router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
   const { dataInicio, dataFim, localizacao, ativo } = req.body;
-  const userId = req.userId;
+  const userId = req.user.uid;;
 
   // Input validation and sanitization
   if (isNaN(parseInt(auctionId))) {
@@ -103,7 +103,7 @@ router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
 
 router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
-  const userId = req.userId;
+  const userId = req.user.uid;;
 
   // Input validation
   if (isNaN(parseInt(auctionId))) {

@@ -103,8 +103,12 @@ router.get('/items/found', policeAuthMiddleware, async (req, res) => {
 
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
 router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
+
+
   // Extract details from the request body
   const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario,imageURL} = req.body;
+
+  console.log('req.user.uid;:', req.user.uid);
 
   // Validate required fields to ensure no critical data is missing
   if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !imageURL) {
@@ -141,10 +145,10 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
 
   try {
 
-    console.log('req.userId:', req.userId);
+    
 
-    // Buscar o ID do policial usando o firebase_uid do req.userId
-    const resultPolicial = await pool.query('SELECT ID FROM MembroPolicia WHERE utilizador_id = $1', [req.userId]);
+    // Buscar o ID do policial usando o firebase_uid do req.user.uid;
+    const resultPolicial = await pool.query('SELECT ID FROM MembroPolicia WHERE utilizador_id = $1', [req.user.uid;]);
     if (resultPolicial.rowCount === 0) {
       return res.status(404).json({ error: 'Policial não encontrado' });
     }

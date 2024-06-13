@@ -15,7 +15,7 @@ const isAuthenticated = async (req, res, next) => {
       console.log("Verifying ID token...");
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       console.log("ID token is valid:", decodedToken);
-      req.userId = decodedToken.uid;
+      req.user.uid; = decodedToken.uid;
       return next();
     }
 
@@ -69,7 +69,7 @@ router.get("/lost/:itemId", async (req, res) => {
 
 router.post("/lost", isAuthenticated, async (req, res) => {
   const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido } = req.body;
-  const userId = req.userId;
+  const userId = req.user.uid;
   const ativo = true;
   
   // Input validation and sanitization
@@ -116,7 +116,7 @@ router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
   const { itemId } = req.params;
   const { descricao, categoria, data_perdido, localizacao_perdido, ativo } =
     req.body;
-  const userId = req.userId;
+  const userId = req.user.uid;;
 
   // Input validation and sanitization
   if (isNaN(parseInt(itemId))) {
@@ -161,7 +161,7 @@ router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
 // Remove a lost item (RF-06)
 router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
   const { itemId } = req.params;
-  const userId = req.userId;
+  const userId = req.user.uid;;
 
   // Input validation
   if (isNaN(parseInt(itemId))) {
@@ -247,7 +247,7 @@ router.get(
   isAuthenticated,
   async (req, res) => {
     const { lostItemId, foundItemId } = req.params;
-    const userId = req.userId;
+    const userId = req.user.uid;;
 
     // Validate item IDs
     if (isNaN(parseInt(lostItemId)) || isNaN(parseInt(foundItemId))) {
@@ -343,7 +343,7 @@ router.get("/found/:itemId", async (req, res) => {
 router.post("/found/:itemId/deliver", isAuthenticated, async (req, res) => {
   const { itemId } = req.params;
   const { ownerId, deliveryDate } = req.body;
-  const userId = req.userId;
+  const userId = req.user.uid;;
 
   // Input validation
   if (isNaN(parseInt(itemId)) || isNaN(parseInt(ownerId))) {
