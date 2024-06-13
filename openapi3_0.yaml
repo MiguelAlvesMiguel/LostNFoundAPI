@@ -828,9 +828,6 @@ paths:
                 valor_monetario:
                   type: number
                   description: The estimated monetary value of the found item.
-                policial_id:
-                  type: integer
-                  description: The ID of the police officer registering the found item.
                 imageurl:
                   type: string
                   description: The URL of the image of the found item.
@@ -839,6 +836,8 @@ paths:
           description: Found item registered successfully. Returns the ID of the newly registered item.
         '400':
           description: Invalid input. One or more of the required fields are missing or malformed.
+        '404':
+          description: Police member not found.
         '500':
           description: Internal server error. Indicates a server-side error that prevented the item from being registered.
 
