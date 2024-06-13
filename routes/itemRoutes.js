@@ -67,25 +67,19 @@ router.get("/lost/:itemId", async (req, res) => {
   }
 });
 
-// Register a lost item (RF-06)
 router.post("/lost", isAuthenticated, async (req, res) => {
-  const { titulo, descricao, categoria, data_perdido, localizacao_perdido } =
-    req.body;
+  const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido } = req.body;
   const userId = req.userId;
   const ativo = true;
+  
   // Input validation and sanitization
-  if (
-    !titulo ||
-    !descricao ||
-    !categoria ||
-    !data_perdido ||
-    !localizacao_perdido
-  ) {
+  if (!titulo || !descricao_curta || !descricao || !categoria || !data_perdido || !localizacao_perdido) {
     console.log("Invalid input data");
     return res.status(400).json({ error: "Invalid input data" });
   }
 
   const sanitizedTitulo = sanitizeInput(titulo);
+  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
   const sanitizedDescricao = sanitizeInput(descricao);
   const sanitizedCategoria = sanitizeInput(categoria);
   const sanitizedLocalizacao = {
@@ -95,9 +89,10 @@ router.post("/lost", isAuthenticated, async (req, res) => {
 
   try {
     const result = await pool.query(
-      "INSERT INTO ObjetoPerdido (titulo, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID",
+      "INSERT INTO ObjetoPerdido (titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo, utilizador_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING ID",
       [
         sanitizedTitulo,
+        sanitizedDescricaoCurta,
         sanitizedDescricao,
         sanitizedCategoria,
         data_perdido,
@@ -108,14 +103,13 @@ router.post("/lost", isAuthenticated, async (req, res) => {
     );
     const itemId = result.rows[0].id;
     console.log("Lost item registered successfully with ID:", itemId);
-    res
-      .status(201)
-      .json({ message: "Lost item registered successfully", itemId });
+    res.status(201).json({ message: "Lost item registered successfully", itemId });
   } catch (error) {
     console.error("Error registering lost item:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 // Edit details of a lost item (RF-06)
 router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
