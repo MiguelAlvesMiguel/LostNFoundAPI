@@ -26,7 +26,8 @@ const sanitizeURL = (url) => {
     const sanitizedUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
     return sanitizedUrl.replace(/[^a-zA-Z0-9/:.?&=_-]/g, ''); // Further sanitize the URL
   } catch (e) {
-    throw new Error('Invalid URL');
+    console.error('Invalid URL provided:', url);
+    return null;
   }
 };
 
@@ -106,7 +107,7 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id,imageURL} = req.body;
 
   // Validate required fields to ensure no critical data is missing
-  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !policial_id) {
+  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !policial_id || !imageURL) {
     return res.status(400).json({ error: 'Invalid input: required fields are missing.' });
   }
 
@@ -116,6 +117,10 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   const sanitizedCategoria = sanitizeInput(categoria);
   const sanitizedDataAchado = new Date(data_achado);
   const sanitizedImageURL = sanitizeURL(imageURL);
+
+  if (!sanitizedImageURL) {
+    return res.status(400).json({ error: 'Invalid URL provided' });
+  }
 
   let sanitizedLocalizacaoAchado;
   try {
