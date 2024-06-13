@@ -18,7 +18,7 @@ const isAuthenticated = async (req, res, next) => {
       console.log('Verifying ID token...');
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       console.log('ID token is valid:', decodedToken);
-      req.user.uid; = decodedToken.uid;
+      req.userId = decodedToken.uid;
       return next();
     }
 
@@ -41,7 +41,7 @@ router.get('/test', doubleAuthMiddleware  , async (req, res) => {
 });
 
 // Create a new auction if it doesn't already exist
-router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, async (req, res) => {
+router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { objeto_achado_id, data_inicio, data_fim, localizacao, valor_base } = req.body;
   
   try {
@@ -72,7 +72,7 @@ router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, async (req, 
 router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
   const { dataInicio, dataFim, localizacao, ativo } = req.body;
-  const userId = req.user.uid;;
+  const userId = req.userId;
 
   // Input validation and sanitization
   if (isNaN(parseInt(auctionId))) {
@@ -103,7 +103,7 @@ router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
 
 router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
-  const userId = req.user.uid;;
+  const userId = req.userId;
 
   // Input validation
   if (isNaN(parseInt(auctionId))) {
@@ -413,7 +413,7 @@ router.post('/notify-auction-event', firebaseAuth, jwtCheck, async (req, res) =>
 });
 
 // Endpoint to register a possible owner of a found object
-router.post('/register-owner', firebaseAuth, policeAuthMiddleware, async (req, res) => {
+router.post('/register-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
 
   try {
@@ -429,7 +429,7 @@ router.post('/register-owner', firebaseAuth, policeAuthMiddleware, async (req, r
 });
 
 // Endpoint to edit a possible owner of a found object
-router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, async (req, res) => {
+router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
 
   try {
@@ -445,7 +445,7 @@ router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, async (req, res) =
 });
 
 // Endpoint to remove a possible owner of a found object
-router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuthMiddleware, async (req, res) => {
+router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { objetoAchadoId } = req.params;
 
   try {

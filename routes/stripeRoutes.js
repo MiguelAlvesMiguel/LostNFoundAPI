@@ -9,6 +9,27 @@ const pool = require('../db'); // Import the database connection
 router.use(express.json());
 router.use(cors());
 
+const isAuthenticated = async (req, res, next) => {
+  try {
+    const { authorization } = req.headers;
+
+    if (authorization && authorization.startsWith("Bearer ")) {
+      const idToken = authorization.split("Bearer ")[1];
+      console.log("Verifying ID token...");
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      console.log("ID token is valid:", decodedToken);
+      req.userId = decodedToken.uid;
+      return next();
+    }
+
+    console.log("No authorization token was found");
+    res.status(401).json({ error: "Unauthorized" });
+  } catch (error) {
+    console.error("Error while verifying Firebase ID token:", error);
+    res.status(401).json({ error: "Unauthorized" });
+  }
+};
+
 const sanitizeInput = (input) => {
   return input.replace(/[^a-zA-Z0-9\s]/g, '');
 };

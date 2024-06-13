@@ -10,6 +10,26 @@ const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 const policeAuthMiddleware = require('../middlewares/policeAuth');
 
+const isAuthenticated = async (req, res, next) => {
+    try {
+      const { authorization } = req.headers;
+  
+      if (authorization && authorization.startsWith("Bearer ")) {
+        const idToken = authorization.split("Bearer ")[1];
+        console.log("Verifying ID token...");
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        console.log("ID token is valid:", decodedToken);
+        req.userId = decodedToken.uid;
+        return next();
+      }
+  
+      console.log("No authorization token was found");
+      res.status(401).json({ error: "Unauthorized" });
+    } catch (error) {
+      console.error("Error while verifying Firebase ID token:", error);
+      res.status(401).json({ error: "Unauthorized" });
+    }
+  };
 
 // Sanitize input data
 const sanitizeInput = (input) => {
@@ -17,7 +37,7 @@ const sanitizeInput = (input) => {
   };
 
  //get reports of lost and found items
- router.get('/items',policeAuthMiddleware, async (req, res) => {
+ router.get('/items',policeAuthMiddleware, isAuthenticated, async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Validate date format
@@ -159,7 +179,7 @@ router.get('/auctions', async (req, res) => {
 });
 
 // Get user activity report
-router.get('/user-activity/:userId',policeAuthMiddleware, async (req, res) => {
+router.get('/user-activity/:userId',policeAuthMiddleware, isAuthenticated, async (req, res) => {
     const sanitizedUserId = sanitizeInput(req.params.userId);
     try {
         // Check if user exists in the database
@@ -228,7 +248,7 @@ router.get('/user-activity/:userId',policeAuthMiddleware, async (req, res) => {
 });
 
 // Define the GET endpoint to retrieve found objects by a police officer
-router.get('/found-objects/:firebaseUid', policeAuthMiddleware, async (req, res) => {
+router.get('/found-objects/:firebaseUid', policeAuthMiddleware, isAuthenticated, async (req, res) => {
     const firebaseUid = sanitizeInput(req.params.firebaseUid);
   
     if (!firebaseUid) {
@@ -272,7 +292,7 @@ router.get('/found-objects/:firebaseUid', policeAuthMiddleware, async (req, res)
   });
 
 // Define the GET endpoint to retrieve average statistics of lost and found objects per month
-router.get('/statistics', policeAuthMiddleware, async (req, res) => {
+router.get('/statistics', policeAuthMiddleware, isAuthenticated, async (req, res) => {
     try {
       // Calculate total objects lost and the earliest date of loss
       const totalLostQuery = `

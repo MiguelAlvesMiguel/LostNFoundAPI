@@ -11,6 +11,26 @@ const { getAuth } = require('firebase/auth');
 const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 
+const isAuthenticated = async (req, res, next) => {
+  try {
+    const { authorization } = req.headers;
+
+    if (authorization && authorization.startsWith("Bearer ")) {
+      const idToken = authorization.split("Bearer ")[1];
+      console.log("Verifying ID token...");
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      console.log("ID token is valid:", decodedToken);
+      req.userId = decodedToken.uid;
+      return next();
+    }
+
+    console.log("No authorization token was found");
+    res.status(401).json({ error: "Unauthorized" });
+  } catch (error) {
+    console.error("Error while verifying Firebase ID token:", error);
+    res.status(401).json({ error: "Unauthorized" });
+  }
+};
 
 const router = express.Router();
 
@@ -32,7 +52,7 @@ const sanitizeURL = (url) => {
 };
 
 // Define the PUT endpoint to claim a found item
-router.put('/items/:itemId/claim', policeAuthMiddleware, async (req, res) => {
+router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const itemId = parseInt(req.params.itemId);
   const claimantId = req.query.claimantId;
 
@@ -83,7 +103,7 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, async (req, res) => {
 });
 
 // Get all found items 
-router.get('/items/found', policeAuthMiddleware, async (req, res) => {
+router.get('/items/found', policeAuthMiddleware, isAuthenticated, async (req, res) => {
   
   try {
     const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
@@ -102,13 +122,13 @@ router.get('/items/found', policeAuthMiddleware, async (req, res) => {
 
 
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
-router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
+router.post('/items/found/register', policeAuthMiddleware, isAuthenticated, async (req, res) => {
 
 
   // Extract details from the request body
   const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario,imageURL} = req.body;
 
-  console.log('req.user.uid;:', req.user.uid);
+  console.log('userid:',  req.userId);
 
   // Validate required fields to ensure no critical data is missing
   if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !imageURL) {
@@ -147,8 +167,8 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
 
     
 
-    // Buscar o ID do policial usando o firebase_uid do req.user.uid;
-    const resultPolicial = await pool.query('SELECT ID FROM MembroPolicia WHERE utilizador_id = $1', [req.user.uid;]);
+    // Buscar o ID do policial usando o firebase_uid do req.userId
+    const resultPolicial = await pool.query('SELECT ID FROM MembroPolicia WHERE utilizador_id = $1', [req.userId]);
     if (resultPolicial.rowCount === 0) {
       return res.status(404).json({ error: 'Policial não encontrado' });
     }
@@ -537,7 +557,7 @@ router.get('/members', adminAuthMiddleware, async (req, res) => {
 //the police member is the only one that can see the reports of the users
 
 // Get a list of users for police members (protected route)
-router.get('/users', policeAuthMiddleware, async (req, res) => {
+router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM Utilizador WHERE ativo = TRUE');
     res.json(rows);
