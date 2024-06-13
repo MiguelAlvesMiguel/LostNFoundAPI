@@ -104,10 +104,10 @@ router.get('/items/found', policeAuthMiddleware, async (req, res) => {
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
 router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
   // Extract details from the request body
-  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, policial_id,imageURL} = req.body;
+  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario,imageURL} = req.body;
 
   // Validate required fields to ensure no critical data is missing
-  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !policial_id || !imageURL) {
+  if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !imageURL) {
     return res.status(400).json({ error: 'Invalid input: required fields are missing.' });
   }
 
@@ -138,9 +138,18 @@ router.post('/items/found/register', policeAuthMiddleware, async (req, res) => {
 
   const sanitizedDataLimite = new Date(data_limite);
   const sanitizedValorMonetario = parseFloat(valor_monetario);
-  const sanitizedPolicialId = parseInt(policial_id);
 
   try {
+
+    console.log('req.userId:', req.userId);
+
+    // Buscar o ID do policial usando o firebase_uid do req.userId
+    const resultPolicial = await pool.query('SELECT ID FROM MembroPolicia WHERE utilizador_id = $1', [req.userId]);
+    if (resultPolicial.rowCount === 0) {
+      return res.status(404).json({ error: 'Policial não encontrado' });
+    }
+    const sanitizedPolicialId = resultPolicial.rows[0].id;
+
     // Insert the new found item into the ObjetoAchado table
     const insertQuery = `
       INSERT INTO ObjetoAchado (titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, ativo, valor_monetario, policial_id, imageURL)
