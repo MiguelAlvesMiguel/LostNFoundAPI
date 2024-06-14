@@ -128,8 +128,6 @@ router.post('/items/found/register', policeAuthMiddleware, isAuthenticated, asyn
   // Extract details from the request body
   const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario,imageURL} = req.body;
 
-  console.log('userid:',  req.userId);
-
   // Validate required fields to ensure no critical data is missing
   if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !imageURL) {
     return res.status(400).json({ error: 'Invalid input: required fields are missing.' });
@@ -165,10 +163,8 @@ router.post('/items/found/register', policeAuthMiddleware, isAuthenticated, asyn
 
   try {
 
-    
-
     // Buscar o ID do policial usando o firebase_uid do req.userId
-    const resultPolicial = await pool.query('SELECT ID FROM MembroPolicia WHERE utilizador_id = $1', [req.userId]);
+    const resultPolicial = await pool.query('SELECT id FROM MembroPolicia WHERE utilizador_id = $1', [req.userId]);
     if (resultPolicial.rowCount === 0) {
       return res.status(404).json({ error: 'Policial não encontrado' });
     }
