@@ -36,21 +36,25 @@ const sanitizeInput = (input) => {
 
 // Endpoint to create a Checkout Session
 router.post('/create-checkout-session', async (req, res) => {
+  console.log('Received request to create checkout session');
   const { pagamento_id } = req.body;
 
   try {
-    const sanitizedPagamentoId = parseInt(sanitizeInput(pagamento_id), 10);
+    const sanitizedPagamentoId = parseInt(pagamento_id);
 
     if (isNaN(sanitizedPagamentoId) || sanitizedPagamentoId <= 0) {
+      console.error('Invalid pagamento_id:', pagamento_id);
       return res.status(400).json({ error: 'Invalid pagamento_id' });
     }
 
     const result = await pool.query('SELECT valor FROM Pagamento WHERE ID = $1', [sanitizedPagamentoId]);
     if (result.rows.length === 0) {
+      console.error('No payment found for pagamento_id:', sanitizedPagamentoId);
       return res.status(400).json({ error: 'Invalid pagamento_id' });
     }
 
     const amount = parseFloat(result.rows[0].valor) * 100; // Convert to cents
+    console.log('Amount to be charged:', amount);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -73,61 +77,71 @@ router.post('/create-checkout-session', async (req, res) => {
 
     res.status(200).json({ id: session.id });
   } catch (error) {
+    console.error('Error creating checkout session:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Endpoint to add a new row to Pagamento with ativo set to false
 router.post('/add-pagamento', async (req, res) => {
-  const { licitacao_id, utilizador_id, data_pagamento, valor } = req.body;
+  console.log('Received request to add pagamento');
+  const { licitacao_id, utilizador_id, valor } = req.body;
 
   try {
     const sanitizedLicitacaoId = parseInt(sanitizeInput(licitacao_id), 10);
     const sanitizedUtilizadorId = sanitizeInput(utilizador_id);
-    const sanitizedDataPagamento = sanitizeInput(data_pagamento);
     const sanitizedValor = parseFloat(valor);
 
-    if (isNaN(sanitizedLicitacaoId) || isNaN(sanitizedValor) || !sanitizedUtilizadorId || !sanitizedDataPagamento) {
+    if (isNaN(sanitizedLicitacaoId) || isNaN(sanitizedValor) || !sanitizedUtilizadorId || sanitizedValor <= 0) {
+      console.error('Invalid input:', { licitacao_id, utilizador_id, valor });
       return res.status(400).json({ error: 'Invalid input' });
     }
 
     const result = await pool.query(
       'INSERT INTO Pagamento (licitacao_id, utilizador_id, data_pagamento, valor, ativo) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [sanitizedLicitacaoId, sanitizedUtilizadorId, sanitizedDataPagamento, sanitizedValor, false]
+      [sanitizedLicitacaoId, sanitizedUtilizadorId, null, sanitizedValor, false]
     );
 
+    console.log('Pagamento added:', result.rows[0]);
     res.status(200).json(result.rows[0]);
   } catch (error) {
+    console.error('Error adding pagamento:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // Endpoint to update ativo to true after a successful payment
 router.post('/update-pagamento', async (req, res) => {
+  console.log('Received request to update pagamento');
   const { pagamento_id } = req.body;
 
   try {
-    const sanitizedPagamentoId = parseInt(sanitizeInput(pagamento_id), 10);
+    const sanitizedPagamentoId = parseInt(pagamento_id);
 
     if (isNaN(sanitizedPagamentoId) || sanitizedPagamentoId <= 0) {
+      console.error('Invalid pagamento_id:', pagamento_id);
       return res.status(400).json({ error: 'Invalid pagamento_id' });
     }
 
+    const currentDate = new Date().toISOString().split('T')[0]; // Get the current date in YYYY-MM-DD format
+
     const result = await pool.query(
-      'UPDATE Pagamento SET ativo = $1 WHERE ID = $2 RETURNING *',
-      [true, sanitizedPagamentoId]
+      'UPDATE Pagamento SET ativo = $1, data_pagamento = $2 WHERE ID = $3 RETURNING *',
+      [true, currentDate, sanitizedPagamentoId]
     );
 
     if (result.rows.length === 0) {
+      console.error('Invalid pagamento_id:', sanitizedPagamentoId);
       return res.status(400).json({ error: 'Invalid pagamento_id' });
     }
 
+    console.log('Pagamento updated:', result.rows[0]);
     res.status(200).json(result.rows[0]);
   } catch (error) {
+    console.error('Error updating pagamento:', error);
     res.status(500).json({ error: error.message });
   }
 });
-
 
 //FALTA PROTEGER COM O FIREBASE E FALTA METER OS ENDPOINTS NO YAML
 

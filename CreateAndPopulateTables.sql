@@ -104,7 +104,7 @@ CREATE TABLE Pagamento
     licitacao_id INT NOT NULL REFERENCES Licitacao(ID) ON DELETE CASCADE,
     utilizador_id VARCHAR(255) NOT NULL REFERENCES Utilizador(firebase_uid) ON DELETE CASCADE,
     -- User who made the payment
-    data_pagamento DATE NOT NULL,
+    data_pagamento DATE,
     valor DECIMAL(10, 2) NOT NULL,
     ativo BOOLEAN NOT NULL
     -- true if payment was made, false if it wasnt made yet
