@@ -69,7 +69,7 @@ router.get("/lost/:itemId", async (req, res) => {
 
 router.post("/lost", isAuthenticated, async (req, res) => {
   const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido } = req.body;
-  const userId = req.user.uid;
+  const userId =   req.userId;
   const ativo = true;
   
   // Input validation and sanitization
