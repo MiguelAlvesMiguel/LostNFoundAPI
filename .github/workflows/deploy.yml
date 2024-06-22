@@ -19,6 +19,9 @@ jobs:
     - name: List files
       run: ls -al
 
+    - name: Debug SSH Key
+      run: echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\n'
+
     - name: Install dependencies and build
       run: |
         npm install
