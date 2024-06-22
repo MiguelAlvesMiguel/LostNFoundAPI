@@ -563,5 +563,27 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
   }
 });
 
+ // Definir um endpoint GET para buscar todos os leilões ativos (protected route)
+router.get('/auctions/active', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  try {
+    // Consulta para buscar todos os leilões ativos
+    const result = await pool.query('SELECT * FROM Leilao WHERE ativo = TRUE');
+    
+    // Verificar se existem leilões ativos
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Nenhum leilão ativo encontrado' });
+    }
+
+    // Retornar os leilões ativos
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Erro ao buscar leilões ativos:', error);
+    res.status(500).json({ error: 'Erro interno do servidor ao buscar leilões ativos' });
+  }
+});
+
+module.exports = router;
+
+
 
 module.exports = router;

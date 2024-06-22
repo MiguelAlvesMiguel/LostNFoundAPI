@@ -1516,6 +1516,58 @@ paths:
                   error:
                     type: string
                     description: Error message
+        
+  /police/auctions/active:
+    get:
+      summary: "Get all active auctions"
+      description: "Retrieve all active auctions from the database"
+      tags:
+        - "Auctions"
+      responses:
+        '200':
+          description: "A list of active auctions"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ID:
+                      type: integer
+                      example: 1
+                    objeto_achado_id:
+                      type: integer
+                      example: 1
+                    data_inicio:
+                      type: string
+                      format: date
+                      example: "2024-01-01"
+                    data_fim:
+                      type: string
+                      format: date
+                      example: "2024-01-15"
+                    localizacao:
+                      type: string
+                      example: "Lisboa"
+                    valor_base:
+                      type: number
+                      format: float
+                      example: 100.50
+                    ativo:
+                      type: boolean
+                      example: true
+        '500':
+          description: "Internal server error"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error"
+
 
 
 components:
