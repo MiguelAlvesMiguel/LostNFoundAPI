@@ -31,6 +31,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
+          echo "Connecting to primary server"
           cd /home/reclaim4242/api/LostNFoundAPI
           git pull origin main
           npm install
@@ -45,6 +46,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
+          echo "Connecting to secondary server"
           cd /home/reclaim4242/api/LostNFoundAPI
           git pull origin main
           npm install
