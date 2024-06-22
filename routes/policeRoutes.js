@@ -73,21 +73,27 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, async 
     await pool.query('BEGIN');
 
     // Check if the claimant exists
-    const checkClaimant = await pool.query('SELECT firebase_uid FROM utilizador WHERE firebase_uid = $1', [sanitizedClaimantId]);
+    const checkClaimant = await pool.query('SELECT firebase_uid FROM Utilizador WHERE firebase_uid = $1', [sanitizedClaimantId]);
     if (checkClaimant.rowCount === 0) {
       await pool.query('ROLLBACK');
       return res.status(404).send('Claimant not found');
     }
 
-    // Check if the item is active and not already claimed
-    const checkItem = await pool.query('SELECT ativo FROM ObjetoAchado WHERE ID = $1 AND ativo = true', [itemId]);
+    // Check if the item is active, not already claimed, and within the claimable date range
+    const checkItem = await pool.query('SELECT ativo, data_limite FROM ObjetoAchado WHERE ID = $1 AND ativo = true', [itemId]);
     if (checkItem.rowCount === 0) {
       await pool.query('ROLLBACK');
       return res.status(404).send('Item not found or already claimed');
     }
 
+    const dataLimite = checkItem.rows[0].data_limite;
+    if (currentDate > dataLimite) {
+      await pool.query('ROLLBACK');
+      return res.status(400).send('Cannot claim item past the claimable date');
+    }
+
     // Update the item to be claimed
-    await pool.query('UPDATE ObjetoAchado SET ativo = false, claimant_id = $1, data_claimed = $2  WHERE ID = $3', [sanitizedClaimantId,currentDate,itemId]);
+    await pool.query('UPDATE ObjetoAchado SET ativo = false, claimant_id = $1, data_claimed = $2 WHERE ID = $3', [sanitizedClaimantId, currentDate, itemId]);
 
     // Commit transaction
     await pool.query('COMMIT');
@@ -588,8 +594,6 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-module.exports = router;
 
 
 
