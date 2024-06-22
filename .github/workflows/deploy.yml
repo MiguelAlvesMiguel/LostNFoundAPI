@@ -1,4 +1,4 @@
-name: Deploy API
+name: Deploy LostNFoundAPI
 
 on:
   push:
@@ -11,12 +11,18 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Install dependencies
+    - name: Print current directory
+      run: pwd
+
+    - name: List files
+      run: ls -al
+
+    - name: Install dependencies and build
       run: |
+        cd LostNFoundAPI
         npm install
-      working-directory: ./api/LostNFoundAPI
 
     - name: Deploy to primary server
       uses: appleboy/ssh-action@master
@@ -24,12 +30,12 @@ jobs:
         host: ${{ secrets.SERVER_IP_PRIMARY }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
         script: |
-          pm2 stop all
-          cd /home/${{ secrets.SERVER_USER }}/api/LostNFoundAPI
+          cd /home/reclaim4242/api/LostNFoundAPI
           git pull origin main
           npm install
-          pm2 start all
+          pm2 restart all
           sudo systemctl restart nginx
 
     - name: Deploy to secondary server
@@ -38,10 +44,10 @@ jobs:
         host: ${{ secrets.SERVER_IP_SECONDARY }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
         script: |
-          pm2 stop all
-          cd /home/${{ secrets.SERVER_USER }}/api/LostNFoundAPI
+          cd /home/reclaim4242/api/LostNFoundAPI
           git pull origin main
           npm install
-          pm2 start all
+          pm2 restart all
           sudo systemctl restart nginx
