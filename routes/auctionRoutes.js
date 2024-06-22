@@ -3,7 +3,11 @@ const pool = require('../db');
 const { getAuth } = require('firebase/auth');
 const router = express.Router();
 const admin = require('firebase-admin');
-
+const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+const policeAuthMiddleware = require('../middlewares/policeAuth');
+const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
+const db = require('../db'); // Adjust the path as necessary
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -30,33 +34,40 @@ const isAuthenticated = async (req, res, next) => {
 const sanitizeInput = (input) => {
   return input.replace(/[^a-zA-Z0-9\s]/g, '');
 };
+//Test endpoint to test middlewares 
 
-// Register, edit, and remove an auction for an object (RF-18)
-router.post('/auctions', isAuthenticated, async (req, res) => {
-  const { objetoAchadoId, dataInicio, dataFim, localizacao, ativo } = req.body;
-  const userId = req.userId;
+router.get('/test', doubleAuthMiddleware  , async (req, res) => {
+  res.status(200).json({ message: 'Test endpoint with firebase+auth0 working!' });
+});
 
-  // Input validation and sanitization
-  if (!objetoAchadoId || !dataInicio || !dataFim || !localizacao || ativo === undefined) {
-    console.log('Invalid input data');
-    return res.status(400).json({ error: 'Invalid input data' });
-  }
-
-  const sanitizedLocalizacao = sanitizeInput(localizacao);
-
+// Create a new auction if it doesn't already exist
+router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  const { objeto_achado_id, data_inicio, data_fim, localizacao, valor_base } = req.body;
+  
   try {
-    const result = await pool.query(
-      'INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, ativo) VALUES ($1, $2, $3, $4, $5) RETURNING ID',
-      [objetoAchadoId, dataInicio, dataFim, sanitizedLocalizacao, ativo]
-    );
-    const auctionId = result.rows[0].id;
-    console.log('Auction registered successfully with ID:', auctionId);
-    res.status(201).json({ message: 'Auction registered successfully', auctionId });
+      // Check if an auction already exists for this object
+      const existingAuction = await db.query(
+          'SELECT * FROM Leilao WHERE objeto_achado_id = $1',
+          [objeto_achado_id]
+      );
+
+      if (existingAuction.rows.length > 0) {
+          return res.status(400).json({ message: 'Auction already exists for this item' });
+      }
+
+      // Create a new auction
+      const newAuction = await db.query(
+          'INSERT INTO Leilao (objeto_achado_id, data_inicio, data_fim, localizacao, valor_base, ativo) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [objeto_achado_id, data_inicio, data_fim, localizacao, valor_base, true]
+      );
+
+      res.status(201).json(newAuction.rows[0]);
   } catch (error) {
-    console.error('Error registering auction:', error);
-    res.status(500).json({ error: 'Internal server error' });
+      console.error(error);
+      res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
@@ -115,22 +126,24 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-// View past, active, and future auctions (RF-19)
-router.get('/auctions', isAuthenticated, async (req, res) => {
+router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
   try {
-    let query = 'SELECT * FROM Leilao';
+    let query = `
+      SELECT le.*, oa.descricao, oa.imageurl, oa.titulo, le.valor_base
+      FROM Leilao le
+      JOIN ObjetoAchado oa ON le.objeto_achado_id = oa.id
+    `;
     const values = [];
 
     if (status) {
       if (status === 'active') {
-        query += ' WHERE data_inicio <= CURRENT_DATE AND data_fim >= CURRENT_DATE';
+        query += ' WHERE le.data_inicio <= CURRENT_DATE AND le.data_fim >= CURRENT_DATE';
       } else if (status === 'upcoming') {
-        query += ' WHERE data_inicio > CURRENT_DATE';
+        query += ' WHERE le.data_inicio > CURRENT_DATE';
       } else if (status === 'past') {
-        query += ' WHERE data_fim < CURRENT_DATE';
+        query += ' WHERE le.data_fim < CURRENT_DATE';
       } else {
         console.log('Invalid status parameter');
         return res.status(400).json({ error: 'Invalid status parameter' });
@@ -138,8 +151,14 @@ router.get('/auctions', isAuthenticated, async (req, res) => {
     }
 
     const result = await pool.query(query, values);
+    
+    const auctions = await Promise.all(result.rows.map(async auction => {
+      const bids = await pool.query('SELECT * FROM Licitacao WHERE leilao_id = $1 ORDER BY valor_licitacao DESC', [auction.id]);
+      return { ...auction, bids: bids.rows, valor_base: parseFloat(auction.valor_base) };
+    }));
+    
     console.log('Auctions retrieved successfully');
-    res.status(200).json(result.rows);
+    res.status(200).json(auctions);
   } catch (error) {
     console.error('Error retrieving auctions:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -340,5 +359,107 @@ router.get('/auctions/history', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// View history of purchased auction items
+router.get('/history', async (req, res) => {
+  const { userId } = req.query;
+  try {
+      const result = await pool.query(`
+          SELECT Leilao.*, ObjetoAchado.*
+          FROM Licitacao
+          INNER JOIN Leilao ON Licitacao.leilao_id = Leilao.ID
+          INNER JOIN ObjetoAchado ON Leilao.objeto_achado_id = ObjetoAchado.ID
+          WHERE Licitacao.utilizador_id = $1 AND Leilao.ativo = FALSE
+      `, [userId]);
+      res.status(200).json(result.rows);
+  } catch (err) {
+      res.status(500).json({ error: err.message });
+  }
+});
+// Endpoint to view history of objects purchased at auction
+router.get('/auction-history/:userId', firebaseAuth, jwtCheck, async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      const result = await pool.query(
+          `SELECT L.*, O.*
+           FROM Licitacao L
+           JOIN Leilao A ON L.leilao_id = A.ID
+           JOIN ObjetoAchado O ON A.objeto_achado_id = O.ID
+           WHERE L.utilizador_id = $1`,
+          [userId]
+      );
+      res.json(result.rows);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Server error');
+  }
+});
+
+// Endpoint to notify of auction events
+router.post('/notify-auction-event', firebaseAuth, jwtCheck, async (req, res) => {
+  const { utilizador_id, mensagem, data } = req.body;
+
+  try {
+      const result = await pool.query(
+          `INSERT INTO Notificacao (utilizador_id, mensagem, data) VALUES ($1, $2, $3) RETURNING *`,
+          [utilizador_id, mensagem, data]
+      );
+      res.status(201).json(result.rows[0]);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Server error');
+  }
+});
+
+// Endpoint to register a possible owner of a found object
+router.post('/register-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  const { objetoAchadoId, utilizadorId } = req.body;
+
+  try {
+      const result = await pool.query(
+          `UPDATE ObjetoAchado SET utilizador_id = $1 WHERE ID = $2 RETURNING *`,
+          [utilizadorId, objetoAchadoId]
+      );
+      res.status(200).json(result.rows[0]);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Server error');
+  }
+});
+
+// Endpoint to edit a possible owner of a found object
+router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  const { objetoAchadoId, utilizadorId } = req.body;
+
+  try {
+      const result = await pool.query(
+          `UPDATE ObjetoAchado SET utilizador_id = $1 WHERE ID = $2 RETURNING *`,
+          [utilizadorId, objetoAchadoId]
+      );
+      res.status(200).json(result.rows[0]);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Server error');
+  }
+});
+
+// Endpoint to remove a possible owner of a found object
+router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  const { objetoAchadoId } = req.params;
+
+  try {
+      const result = await pool.query(
+          `UPDATE ObjetoAchado SET utilizador_id = NULL WHERE ID = $1 RETURNING *`,
+          [objetoAchadoId]
+      );
+      res.status(200).json(result.rows[0]);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send('Server error');
+  }
+});
+
+
 
 module.exports = router;

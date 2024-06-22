@@ -1,44 +1,34 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { initializeApp } = require('firebase/app');
-const { getAuth } = require('firebase/auth');
-const firebaseConfig = require('./FirebaseConfig');
-const pool = require('./db.js');
-const cors = require('cors');  // Ensure CORS is required at the top.
-//import os:
+const cors = require('cors');
 const os = require('os');
 const app = express();
 const admin = require('firebase-admin');
 
 
-// Initialize Firebase
-// Initialize Firebase Admin with credentials from a local file
-admin.initializeApp({
-  credential: admin.credential.cert(require('./adminKey.json'))
-});
-const firebaseApp = initializeApp(firebaseConfig);
-const auth = getAuth(firebaseApp);
-
-// Apply CORS before any other route or middleware
 app.use(cors({
-  origin: 'http://localhost:5173'  // This will allow only your React app to make requests
+  origin: 'http://localhost:5173'
 }));
 
 app.use(bodyParser.json());
 
-// Define routes after the CORS middleware
-const userRoutes = require('./routes/userRoutes.js');
-const itemRoutes = require('./routes/itemRoutes.js');
-const auctionRoutes = require('./routes/auctionRoutes.js');
-const policeRoutes = require('./routes/policeRoutes.js');
+// Import routes
+const userRoutes = require('./routes/userRoutes');
+const itemRoutes = require('./routes/itemRoutes');
+const auctionRoutes = require('./routes/auctionRoutes');
+const policeRoutes = require('./routes/policeRoutes');
+const reportsRoutes = require('./routes/reportsRoutes');
+const stripeRoutes = require('./routes/stripeRoutes');
 
 // Prefix all routes with /v1/
 app.use('/v1/users', userRoutes);
 app.use('/v1/items', itemRoutes);
 app.use('/v1/auctions', auctionRoutes);
 app.use('/v1/police', policeRoutes);
+app.use('/v1/reports', reportsRoutes);
+app.use('/v1/stripe', stripeRoutes);
 
-const port = process.env.PORT || 3999;
+const port = process.env.PORT || 3001;
 
 app.get('/', (req, res) => {
   res.status(200).send(`Welcome to ReClaim API from server ${os.hostname()}!`);

@@ -6,14 +6,38 @@ const moment = require('moment');
 
 const router = express.Router();
 const admin = require('firebase-admin');
+const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+const policeAuthMiddleware = require('../middlewares/policeAuth');
 
-admin.initializeApp({
-    credential: admin.credential.cert(require('../adminKey.json')),
-  });
+const isAuthenticated = async (req, res, next) => {
+    try {
+      const { authorization } = req.headers;
+  
+      if (authorization && authorization.startsWith("Bearer ")) {
+        const idToken = authorization.split("Bearer ")[1];
+        console.log("Verifying ID token...");
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        console.log("ID token is valid:", decodedToken);
+        req.userId = decodedToken.uid;
+        return next();
+      }
+  
+      console.log("No authorization token was found");
+      res.status(401).json({ error: "Unauthorized" });
+    } catch (error) {
+      console.error("Error while verifying Firebase ID token:", error);
+      res.status(401).json({ error: "Unauthorized" });
+    }
+  };
 
+// Sanitize input data
+const sanitizeInput = (input) => {
+    return input.replace(/[^a-zA-Z0-9\s]/g, '');
+  };
 
  //get reports of lost and found items
- router.get('/reports/items', async (req, res) => {
+ router.get('/items',policeAuthMiddleware, isAuthenticated, async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Validate date format
@@ -30,7 +54,7 @@ admin.initializeApp({
         // Querying the database to get the lost and found items between the start and end date
         const [resultObjectsLost, resultObjectsFound] = await Promise.all([
             pool.query('SELECT * FROM objetoperdido WHERE data_perdido BETWEEN $1 AND $2', [startDate, endDate]),
-            pool.query('SELECT * FROM objetorecuperado WHERE data_achado BETWEEN $1 AND $2', [startDate, endDate])
+            pool.query('SELECT * FROM objetoachado WHERE data_achado BETWEEN $1 AND $2', [startDate, endDate])
         ]);
 
         // Check if the results are not empty and send them as a response
@@ -42,13 +66,17 @@ admin.initializeApp({
         // Create an empty array to store matched lost and found items
         let lost_and_found_items = [];
 
+        //create variable to store number of found items
+        let foundItems = 0;
+
         // Iterate over each lost item
         resultObjectsLost.rows.forEach(lostItem => {
             const foundMatch = resultObjectsFound.rows.find(foundItem => 
-                lostItem.descricao.toLowerCase() === foundItem.descricao.toLowerCase() && 
+                lostItem.descricao_curta.toLowerCase() === foundItem.descricao_curta.toLowerCase() && 
                 lostItem.categoria.toLowerCase() === foundItem.categoria.toLowerCase() &&
-                lostItem.localizacao_perdido.toLowerCase() === foundItem.localizacao_achado.toLowerCase()
-            )
+                lostItem.localizacao_perdido.latitude === foundItem.localizacao_achado.latitude &&
+                lostItem.localizacao_perdido.longitude === foundItem.localizacao_achado.longitude
+            );
              // If a match is found, push the combined information to the lost_and_found_items array
         if (foundMatch) {
             lost_and_found_items.push({
@@ -56,6 +84,8 @@ admin.initializeApp({
                 encontrado: true,
                 foundItem: foundMatch // Save the entire found item object, or just the relevant info
             });
+            //increment the foundItems variable
+            foundItems++;
         } else {
             // If no match is found, still include the lost item, but indicate it hasn't been found
             lost_and_found_items.push({
@@ -68,7 +98,7 @@ admin.initializeApp({
 
         // Compute statistics
         let totalLost = resultObjectsLost.rows.length;
-        let totalFound = resultObjectsFound.rows.length;
+        let totalFound = foundItems;
         let lostToFoundRatio = totalFound > 0 ? (totalLost / totalFound) : 0; // Avoid division by zero. condition ? value_if_true : value_if_false
 
         // Calculate average time to find an item
@@ -92,7 +122,7 @@ admin.initializeApp({
             stats: {
                 totalLost,
                 totalFound,
-                lostToFoundRatio,
+                lostToFoundRatio: lostToFoundRatio.toFixed(2),
                 averageTimeToFind: averageTimeToFind.toFixed(2) + ' days' // Rounded to two decimal places
             }
         });
@@ -102,7 +132,7 @@ admin.initializeApp({
     }
 });
 
-app.get('/reports/auctions', async (req, res) => {
+router.get('/auctions', async (req, res) => {
     const { startDate, endDate } = req.query;
 
     // Validate date format
@@ -149,42 +179,63 @@ app.get('/reports/auctions', async (req, res) => {
 });
 
 // Get user activity report
-app.get('/reports/user-activity/:userId', async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    //validate user ID format 
-    if (isNaN(userId)) {
-        return res.status(400).send('Invalid user ID format. User ID must be an integer.');
-    }
+router.get('/user-activity/:userId',policeAuthMiddleware, isAuthenticated, async (req, res) => {
+    const sanitizedUserId = sanitizeInput(req.params.userId);
     try {
         // Check if user exists in the database
         const userExistResult = await pool.query(`
-            SELECT COUNT(*) AS userExists
+            SELECT COUNT(*) AS "userExists"
             FROM utilizador
-            WHERE id = $1 AND ativo = TRUE
-            `, [userId]);
+            WHERE firebase_uid = $1 AND ativo = TRUE
+            `, [sanitizedUserId]);
 
-        if (userExistResult.rows[0].userExists === 0) {
+        if (parseInt(userExistResult.rows[0].userExists) === 0) {
             return res.status(404).send('User not found or inactive.');
         }
 
-         // Query to count total lost items by user
-         const lostItemsResult = await pool.query(`
-            SELECT COUNT(*) AS totalItemsLost
-            FROM objeto_perdido
+        // Query to count total lost items by user
+        const lostItemsResult = await pool.query(`
+            SELECT COUNT(*) AS "totalItemsLost"
+            FROM objetoperdido
             WHERE utilizador_id = $1 AND ativo = TRUE
-            `, [userId]);
+            `, [sanitizedUserId]);
+
+        const totalItemsLost = lostItemsResult.rows[0].totalItemsLost;
 
         // Query to count auctions participated by the user
         const auctionsParticipatedResult = await pool.query(`
-            SELECT COUNT(DISTINCT leilao_id) AS auctionsParticipated
+            SELECT COUNT(DISTINCT leilao_id) AS "auctionsParticipated"
             FROM licitacao
             WHERE utilizador_id = $1
-            `, [userId]);
-        
+            `, [sanitizedUserId]);
+
+        const auctionsParticipated = auctionsParticipatedResult.rows[0].auctionsParticipated;
+
+        // Query to get details of lost items
+        const lostItemsDetailsResult = await pool.query(`
+            SELECT *
+            FROM objetoperdido
+            WHERE utilizador_id = $1 AND ativo = TRUE
+            `, [sanitizedUserId]);
+
+        const lostItemsDetails = lostItemsDetailsResult.rows;
+
+        // Query to get details of auctions participated
+        const auctionsDetailsResult = await pool.query(`
+        SELECT DISTINCT leilao.*
+        FROM leilao
+        JOIN licitacao ON leilao.id = licitacao.leilao_id
+        WHERE licitacao.utilizador_id = $1
+        `, [sanitizedUserId]);
+
+        const auctionsDetails = auctionsDetailsResult.rows;
+
         // Prepare the response object
         const response = {
-            totalItemsLost: parseInt(lostItemsResult.rows[0].totalItemsLost),
-            auctionsParticipated: parseInt(auctionsParticipatedResult.rows[0].auctionsParticipated)
+            totalItemsLost: parseInt(totalItemsLost),
+            lostItemsDetails,
+            auctionsParticipated: parseInt(auctionsParticipated),
+            auctionsDetails
         };
 
         // Send the successful response with the result
@@ -196,6 +247,90 @@ app.get('/reports/user-activity/:userId', async (req, res) => {
     }
 });
 
+// Define the GET endpoint to retrieve found objects by a police officer
+router.get('/found-objects/:firebaseUid', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+    const firebaseUid = sanitizeInput(req.params.firebaseUid);
+  
+    if (!firebaseUid) {
+      return res.status(400).json({ error: 'Invalid firebaseUid. It must be a valid string.' });
+    }
+  
+    try {
+      // Check if the user exists in the Utilizador table and is active
+      const userCheckQuery = 'SELECT 1 FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
+      const userCheckResult = await pool.query(userCheckQuery, [firebaseUid]);
+  
+      if (userCheckResult.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found or inactive.' });
+      }
+  
+      // Check if the police member exists in the MembroPolicia table and get the id of the police officer
+      const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = $1';
+      const checkResult = await pool.query(checkQuery, [firebaseUid]);
+  
+      if (checkResult.rowCount === 0) {
+        return res.status(404).json({ error: 'Police member not found.' });
+      }
+  
+      const policialId = checkResult.rows[0].id;
+  
+      // Retrieve the found objects by the police officer
+      const foundObjectsQuery = `
+        SELECT *
+        FROM ObjetoAchado
+        WHERE policial_id = $1
+      `;
+      const foundObjectsResult = await pool.query(foundObjectsQuery, [policialId]);
+  
+      // Return the found objects
+      res.status(200).json(foundObjectsResult.rows);
+  
+    } catch (error) {
+      console.error('Error retrieving found objects:', error);
+      res.status(500).json({ error: 'Server error while retrieving found objects.' });
+    }
+  });
 
+// Define the GET endpoint to retrieve average statistics of lost and found objects per month
+router.get('/statistics', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+    try {
+      // Calculate total objects lost and the earliest date of loss
+      const totalLostQuery = `
+        SELECT COUNT(*) AS total_lost, MIN(data_perdido) AS first_lost_date
+        FROM ObjetoPerdido
+      `;
+      const totalLostResult = await pool.query(totalLostQuery);
+      const totalLost = parseInt(totalLostResult.rows[0].total_lost);
+      const firstLostDate = totalLostResult.rows[0].first_lost_date;
+  
+      // Calculate total objects found and the earliest date of found
+      const totalFoundQuery = `
+        SELECT COUNT(*) AS total_found, MIN(data_achado) AS first_found_date
+        FROM ObjetoAchado
+      `;
+      const totalFoundResult = await pool.query(totalFoundQuery);
+      const totalFound = parseInt(totalFoundResult.rows[0].total_found);
+      const firstFoundDate = totalFoundResult.rows[0].first_found_date;
+  
+      // Calculate the number of months between the earliest dates and the current date
+      const monthsSinceFirstLost = firstLostDate ? Math.ceil((new Date() - new Date(firstLostDate)) / (1000 * 60 * 60 * 24 * 30)) : 1;
+      const monthsSinceFirstFound = firstFoundDate ? Math.ceil((new Date() - new Date(firstFoundDate)) / (1000 * 60 * 60 * 24 * 30)) : 1;
+  
+      // Calculate averages
+      const averageObjectsLostPerMonth = totalLost / monthsSinceFirstLost;
+      const averageObjectsFoundPerMonth = totalFound / monthsSinceFirstFound;
+  
+      const response = {
+        averageObjectsLostPerMonth: averageObjectsLostPerMonth.toFixed(2),
+        averageObjectsFoundPerMonth: averageObjectsFoundPerMonth.toFixed(2),
+      };
+  
+      res.status(200).json(response);
+    } catch (error) {
+      console.error('Error retrieving statistics:', error);
+      res.status(500).json({ error: 'Server error while retrieving statistics.' });
+    }
+  });  
+  
 
 module.exports = router;

@@ -235,12 +235,103 @@ paths:
           description: Found item delivery registered
         '404':
           description: Item not found
+
   /police/posts:
-    post:
+      get:
+        tags:
+          - Police Operations
+        summary: Retrieve all police posts
+        description: Fetches a list of all police posts.
+        responses:
+          '200':
+            description: Successful retrieval of police posts
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: The ID of the police post
+                      nome:
+                        type: string
+                        description: The name of the police post
+                      localizacao:
+                        type: string
+                        description: The location of the police post
+          '500':
+            description: Server error while retrieving police posts
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Server error while retrieving police posts.
+      post:
+        tags:
+          - Police Operations
+        summary: Register a new police post
+        description: This endpoint registers a new police post by providing the required address (morada) information.
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - morada
+                properties:
+                  morada:
+                    type: string
+                    description: The address of the new police post.
+        responses:
+          '201':
+            description: Police post created successfully. Returns the ID of the newly created post.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                    id:
+                      type: integer
+          '400':
+            description: Invalid input. The "morada" field is missing or is not a valid string.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+          '500':
+            description: Server error while creating the police post.
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+
+  /police/posts/edit/{postId}:
+    put:
       tags:
         - Police Operations
-      summary: Register a new police post
-      description: This endpoint registers a new police post by providing the required address (morada) information.
+      summary: Edit an existing police post
+      description: Updates the information of an existing police post in the database.
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+          description: The unique ID of the police post.
       requestBody:
         required: true
         content:
@@ -252,10 +343,10 @@ paths:
               properties:
                 morada:
                   type: string
-                  description: The address of the new police post.
+                  description: The address of the police post.
       responses:
-        '201':
-          description: Police post created successfully. Returns the ID of the newly created post.
+        '200':
+          description: Police post updated successfully.
           content:
             application/json:
               schema:
@@ -263,19 +354,237 @@ paths:
                 properties:
                   message:
                     type: string
-                  id:
-                    type: integer
         '400':
           description: Invalid input. The "morada" field is missing or is not a valid string.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Police post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
-          description: Server error while creating the police post.
+          description: Server error while updating the police post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /police/users:
+    get:
+      tags:
+        - Police Operations
+      summary: Get a list of all active users
+      description: Allows police members to get a list of all active users to choose which reports to view. Only accessible to authenticated police members.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: A list of all active users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    firebase_uid:
+                      type: string
+                      description: The Firebase UID of the user
+                      example: '2iqHRiu39lOI1lbwKq9f12q4dIB3'
+                    nome:
+                      type: string
+                      description: The name of the user
+                      example: 'John Doe'
+                    genero:
+                      type: string
+                      description: The gender of the user
+                      example: 'Masculino'
+                    data_nasc:
+                      type: string
+                      format: date
+                      description: The birth date of the user
+                      example: '1990-01-15'
+                    morada:
+                      type: string
+                      description: The address of the user
+                      example: '1234 Main St, Lisbon'
+                    email:
+                      type: string
+                      description: The email of the user
+                      example: 'john.doe@example.com'
+                    telemovel:
+                      type: string
+                      description: The phone number of the user
+                      example: '+351 912 345 678'
+                    historico:
+                      type: string
+                      description: The history of the user
+                      example: 'Some history text'
+                    ativo:
+                      type: boolean
+                      description: Whether the user is active
+                      example: true
+                    isCop:
+                      type: boolean
+                      description: Whether the user is a police member
+                      example: false
+                    isAdmin:
+                      type: boolean
+                      description: Whether the user is an admin
+                      example: false
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Forbidden Access restricted to police members only
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Internal server error
+
+  /police/posts/delete/{postId}:
+    delete:
+      tags:
+        - Police Operations
+      summary: Delete a police post
+      description: Deletes a police post from the database if the post exists.
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: integer
+          description: The unique ID of the police post to delete.
+      responses:
+        '200':
+          description: Police post deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '404':
+          description: Police post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Server error while deleting the police post.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
   /police/members:
+    get:
+      summary: Retrieve all police members
+      tags:
+        - Police Operations
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: A list of police members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      example: 1
+                    utilizador_id:
+                      type: string
+                      example: "82DAQSh6eXMbnN90lLhIL0Ks8R12"
+                    posto_policia:
+                      type: integer
+                      example: 1
+                    historico_policia:
+                      type: object
+                      example: 
+                        yearsService: 10
+                        commendations: ["Bravery", "Long Service"]
+                    nome:
+                      type: string
+                      example: "John Doe"
+                    genero:
+                      type: string
+                      example: "Masculino"
+                    data_nasc:
+                      type: string
+                      format: date
+                      example: "1990-01-01"
+                    morada:
+                      type: string
+                      example: "1234 Main St, Lisbon"
+                    email:
+                      type: string
+                      example: "johndoe@example.com"
+                    telemovel:
+                      type: string
+                      example: "+351 912 345 678"
+        '500':
+          description: Server error while retrieving police members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Server error while retrieving police members
     post:
       tags:
         - Police Operations
       summary: Register a new police member
-      description: Adds a new member to the police database. The system automatically generates a unique ID for each new member.
+      description: Adds a new member to the police database, registering them in both the `Utilizador` and `MembroPolicia` tables. The system automatically generates a unique ID for each new member. Requires admin authentication.
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -283,21 +592,46 @@ paths:
             schema:
               type: object
               required:
+                - email
+                - password
                 - nome
+                - genero
+                - data_nasc
+                - morada
+                - telemovel
                 - posto_policia
               properties:
+                email:
+                  type: string
+                  description: The email address of the police member.
+                password:
+                  type: string
+                  description: The password for the police member.
                 nome:
                   type: string
                   description: The full name of the police member.
+                genero:
+                  type: string
+                  description: The gender of the police member.
+                data_nasc:
+                  type: string
+                  format: date
+                  description: The birth date of the police member.
+                morada:
+                  type: string
+                  description: The address of the police member.
+                telemovel:
+                  type: string
+                  description: The phone number of the police member.
                 posto_policia:
                   type: integer
-                  description: The reference ID to an existing police station record.
+                  description: The ID of the police station where the member is assigned.
                 historico_policia:
-                  type: string
-                  description: A JSON formatted string detailing the police member's history.
+                  type: object
+                  description: A JSON object detailing the police member's history.
       responses:
         '201':
-          description: Police member registered successfully. Returns the ID of the newly registered member.
+          description: Police member registered successfully. Returns the ID of the newly registered member and an access token.
           content:
             application/json:
               schema:
@@ -307,29 +641,203 @@ paths:
                     type: string
                   id:
                     type: integer
+                  accessToken:
+                    type: string
         '400':
           description: Invalid input, required fields are missing or incorrect type of data was provided.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
         '500':
           description: Internal server error. Indicates a server-side error that prevented the member from being registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 
+  /police/members/edit/{firebaseUid}:
+      put:
+        summary: Edit a police member's details
+        tags:
+          - Police Operations
+        security:
+          - BearerAuth: []
+        parameters:
+          - name: firebaseUid
+            in: path
+            required: true
+            description: The Firebase UID of the police member
+            schema:
+              type: string
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posto_policia:
+                    type: integer
+                    description: The ID of the police station
+                  historico_policia:
+                    type: object
+                    description: A JSON object detailing the police member's history
+                    example:
+                      yearsService: 12
+                      commendations: 
+                        - Bravery
+                        - Excellence
+        responses:
+          '200':
+            description: Police member updated successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: Police member updated successfully
+          '400':
+            description: Invalid input
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Invalid input
+          '404':
+            description: User not found or inactive / Police member not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: User not found or inactive / Police member not found
+          '500':
+            description: Server error while updating police member
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Server error while updating police member
+
+  /police/members/delete/{firebaseUid}:
+    delete:
+      summary: Delete a police member and associated user
+      parameters:
+        - name: firebaseUid
+          in: path
+          required: true
+          description: The Firebase UID of the police member
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Police member and associated user deleted successfully
+        '400':
+          description: Invalid firebaseUid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid firebaseUid. It must be a valid string.
+        '404':
+          description: User not found or inactive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: One of 'User not found or inactive.' or 'Police member not found.'
+ 
+        '500':
+          description: Server error while deleting police member
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Server error while deleting police member.
 
   /police/items/found/register:
     post:
       tags:
         - Police Operations
-      summary: Register a found item by police
-      description: This endpoint allows police to register items that have been found. It requires detailed item information and returns an ID of the newly registered item if successful.
+      summary: Register a found item by police. if a lost item is found, it will be marked as inactive.
+      description: This endpoint allows police to register items that have been found. It requires detailed item information and returns an ID of the newly registered item if successful. If there is a correspondent lost item, it will set its ativo field to false.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FoundItem'
+              type: object
+              properties:
+                titulo:
+                  type: string
+                  description: The title of the found item.
+                descricao_curta:
+                  type: string
+                  description: A short description of the found item.
+                descricao:
+                  type: string
+                  description: A detailed description of the found item.
+                categoria:
+                  type: string
+                  description: The category of the found item.
+                data_achado:
+                  type: string
+                  format: date
+                  description: The date the item was found.
+                localizacao_achado:
+                  type: string
+                  description: The location where the item was found in JSON format.
+                data_limite:
+                  type: string
+                  format: date
+                  description: The deadline date for claiming the found item.
+                valor_monetario:
+                  type: number
+                  description: The estimated monetary value of the found item.
+                imageurl:
+                  type: string
+                  description: The URL of the image of the found item.
       responses:
         '201':
           description: Found item registered successfully. Returns the ID of the newly registered item.
         '400':
           description: Invalid input. One or more of the required fields are missing or malformed.
+        '404':
+          description: Police member not found.
         '500':
           description: Internal server error. Indicates a server-side error that prevented the item from being registered.
 
@@ -339,7 +847,7 @@ paths:
       tags:
         - Police Operations
       summary: Claim a found item
-      description: Claims an active item as found by updating its status.
+      description: Claims an active item as found by updating its ativo attribute, the claimantId and the data_claimed in the table objetoAchado.
       parameters:
         - in: path
           name: itemId
@@ -347,25 +855,22 @@ paths:
           schema:
             type: integer
           description: The unique identifier of the item to claim.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                claimantId:
-                  type: integer
-                  description: The unique identifier of the user claiming the item.
+        - in: query
+          name: claimantId
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the user claiming the item.
       responses:
         '200':
           description: Item claimed successfully.
         '400':
           description: Invalid input, itemId or claimantId must be integers.
         '404':
-          description: Item not found or already claimed.
+          description: Claimant not found or item not found or already claimed.
         '500':
           description: Server error while claiming the item.
+
 
   /auctions:
     get:
@@ -582,6 +1087,36 @@ paths:
               schema:
                 type: string
 
+  /reports/statistics:
+    get:
+      summary: Retrieve average statistics of lost and found objects per month
+      responses:
+        '200':
+          description: Successful retrieval of statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  averageObjectsLostPerMonth:
+                    type: string
+                    format: float
+                    description: Average number of objects lost per month
+                  averageObjectsFoundPerMonth:
+                    type: string
+                    format: float
+                    description: Average number of objects found per month
+        '500':
+          description: Server error while retrieving statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Server error while retrieving statistics.
+
   /reports/auctions:
     get:
       summary: Get auction statistics report
@@ -649,18 +1184,17 @@ paths:
 
   /reports/user-activity/{userId}:
     get:
-      summary: Get report of user activity
-      tags:
-        - Reports
+      summary: Get user activity report
       parameters:
-        - in: path
-          name: userId
+        - name: userId
+          in: path
           required: true
+          description: The ID of the user
           schema:
-            type: integer 
+            type: string
       responses:
         '200':
-          description: User activity report
+          description: Successful response
           content:
             application/json:
               schema:
@@ -668,28 +1202,321 @@ paths:
                 properties:
                   totalItemsLost:
                     type: integer
-                    description: The total number of items reported lost by the user.
+                    description: Total number of lost items by the user
+                  lostItemsDetails:
+                    type: array
+                    description: Details of the lost items
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The ID of the lost item
+                        titulo:
+                          type: string
+                          description: The title of the lost item
+                        descricao:
+                          type: string
+                          description: The description of the lost item
+                        data_perda:
+                          type: string
+                          format: date
+                          description: The date the item was lost
+                        localizacao:
+                          type: string
+                          description: The location where the item was lost
                   auctionsParticipated:
                     type: integer
-                    description: The number of unique auctions in which the user has participated.
-        '400':
-          description: Invalid user ID format. User ID must be an integer.
-          content:
-            text/plain:
-              schema:
-                type: string
+                    description: Total number of auctions the user participated in
+                  auctionsDetails:
+                    type: array
+                    description: Details of the auctions participated in
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The ID of the auction
+                        titulo:
+                          type: string
+                          description: The title of the auction
+                        descricao:
+                          type: string
+                          description: The description of the auction
+                        data_inicio:
+                          type: string
+                          format: date
+                          description: The start date of the auction
+                        data_fim:
+                          type: string
+                          format: date
+                          description: The end date of the auction
+                        valor_base:
+                          type: number
+                          format: float
+                          description: The base value of the auction
+                        localizacao:
+                          type: string
+                          description: The location of the auction
         '404':
-          description: User not found or inactive.
-          content:
-            text/plain:
-              schema:
-                type: string
+          description: User not found or inactive
         '500':
-          description: Internal server error.
+          description: Internal server error
+
+  /reports/found-objects/{firebaseUid}:
+      get:
+        summary: Retrieve found objects by a police officer
+        parameters:
+          - name: firebaseUid
+            in: path
+            required: true
+            description: The Firebase UID of the police officer
+            schema:
+              type: string
+        responses:
+          '200':
+            description: Successful retrieval of found objects
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: The ID of the found object
+                      localizacao_achado:
+                        type: object
+                        description: The location where the object was found
+                      data_limite:
+                        type: string
+                        format: date
+                        description: The deadline date for the object
+                      ativo:
+                        type: boolean
+                        description: Whether the object is active
+                      valor_monetario:
+                        type: number
+                        format: float
+                        description: The monetary value of the object
+                      policial_id:
+                        type: integer
+                        description: The ID of the police officer who found the object
+                      data_achado:
+                        type: string
+                        format: date
+                        description: The date the object was found
+                      titulo:
+                        type: string
+                        description: The title of the found object
+                      descricao_curta:
+                        type: string
+                        description: A short description of the found object
+                      descricao:
+                        type: string
+                        description: A detailed description of the found object
+                      categoria:
+                        type: string
+                        description: The category of the found object
+                      imageurl:
+                        type: string
+                        description: The URL of the image of the found object
+          '400':
+            description: Invalid firebaseUid
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Invalid firebaseUid. It must be a valid string.
+          '404':
+            description: Not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: One of 'User not found or inactive.' or 'Police member not found.'
+          '500':
+            description: Server error while retrieving found objects
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    error:
+                      type: string
+                      example: Server error while retrieving found objects.
+  /stripe/create-checkout-session:
+    post:
+      summary: Create a Stripe Checkout Session
+      description: Creates a new Stripe Checkout Session for a given payment ID.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pagamento_id:
+                  type: integer
+                  description: The ID of the payment.
+              required:
+                - pagamento_id
+      responses:
+        '200':
+          description: Successfully created checkout session
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The ID of the Stripe Checkout Session.
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+
+  /stripe/add-pagamento:
+    post:
+      summary: Add a new payment record
+      description: Adds a new payment record to the Pagamento table with ativo set to false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                licitacao_id:
+                  type: integer
+                  description: The ID of the auction.
+                utilizador_id:
+                  type: string
+                  description: The Firebase UID of the user.
+                valor:
+                  type: number
+                  format: float
+                  description: The amount of the payment.
+              required:
+                - licitacao_id
+                - utilizador_id
+                - valor
+      responses:
+        '200':
+          description: Successfully added payment record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  licitacao_id:
+                    type: integer
+                  utilizador_id:
+                    type: string
+                  valor:
+                    type: number
+                    format: float
+                  ativo:
+                    type: boolean
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+
+  /stripe/update-pagamento:
+    post:
+      summary: Update a payment record
+      description: Updates the ativo field to true for a given payment ID after a successful payment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pagamento_id:
+                  type: integer
+                  description: The ID of the payment.
+              required:
+                - pagamento_id
+      responses:
+        '200':
+          description: Successfully updated payment record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  licitacao_id:
+                    type: integer
+                  utilizador_id:
+                    type: string
+                  valor:
+                    type: number
+                    format: float
+                  ativo:
+                    type: boolean
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+
 
 components:
   schemas:

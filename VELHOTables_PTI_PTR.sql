@@ -10,8 +10,7 @@ DROP TABLE IF EXISTS PostoPolicia;
 DROP TABLE IF EXISTS Utilizador;
 
 -- Create tables
-CREATE TABLE Utilizador
-(
+CREATE TABLE Utilizador (
     ID SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
     genero VARCHAR(50) NOT NULL,
@@ -47,6 +46,8 @@ CREATE TABLE Admin
 CREATE TABLE ObjetoPerdido
 (
     ID SERIAL PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descricao_curta TEXT NOT NULL,
     descricao TEXT NOT NULL,
     categoria VARCHAR(255) NOT NULL,
     data_perdido DATE NOT NULL,
@@ -58,6 +59,8 @@ CREATE TABLE ObjetoPerdido
 CREATE TABLE ObjetoAchado
 (
     ID SERIAL PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descricao_curta TEXT NOT NULL,
     descricao TEXT NOT NULL,
     categoria VARCHAR(255) NOT NULL,
     data_achado DATE NOT NULL,
@@ -65,7 +68,8 @@ CREATE TABLE ObjetoAchado
     data_limite DATE NOT NULL,
     ativo BOOLEAN NOT NULL,
     valor_monetario DECIMAL(10, 2),
-    policial_id INT NOT NULL REFERENCES MembroPolicia(ID) ON DELETE CASCADE
+    policial_id INT NOT NULL REFERENCES MembroPolicia(ID) ON DELETE CASCADE,
+    imageURL TEXT
 );
 
 CREATE TABLE Leilao
@@ -94,3 +98,25 @@ CREATE TABLE Notificacao
     mensagem TEXT NOT NULL,
     data TIMESTAMP NOT NULL
 );
+
+-- Delete all rows from the tables, respecting the foreign key constraints
+-- Start with the tables that don't reference other tables, or that are only referenced by others.
+DELETE FROM Licitacao;
+DELETE FROM Notificacao;
+DELETE FROM Leilao;
+DELETE FROM ObjetoAchado;
+DELETE FROM ObjetoPerdido;
+DELETE FROM Admin;
+DELETE FROM MembroPolicia;
+DELETE FROM PostoPolicia;
+DELETE FROM Utilizador;
+
+-- Reset sequences for all tables that have SERIAL primary key
+ALTER SEQUENCE postopolicia_id_seq RESTART WITH 1;
+ALTER SEQUENCE admin_adminid_seq RESTART WITH 1;
+ALTER SEQUENCE objetoperdido_id_seq RESTART WITH 1;
+ALTER SEQUENCE objetoachado_id_seq RESTART WITH 1;
+ALTER SEQUENCE leilao_id_seq RESTART WITH 1;
+ALTER SEQUENCE licitacao_id_seq RESTART WITH 1;
+ALTER SEQUENCE notificacao_id_seq RESTART WITH 1;
+ALTER SEQUENCE membropolicia_id_seq RESTART WITH 1;  -- Assuming this is the correct sequence name
