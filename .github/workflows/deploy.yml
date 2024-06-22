@@ -21,7 +21,6 @@ jobs:
 
     - name: Install dependencies and build
       run: |
-        cd LostNFoundAPI
         npm install
 
     - name: Deploy to primary server
