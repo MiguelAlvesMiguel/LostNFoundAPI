@@ -16,7 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
         npm install
-      working-directory: ./LostNFoundAPI
+      working-directory: ./api/LostNFoundAPI
 
     - name: Deploy to primary server
       uses: appleboy/ssh-action@master
@@ -36,12 +36,4 @@ jobs:
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.SERVER_IP_SECONDARY }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          pm2 stop all
-          cd /home/${{ secrets.SERVER_USER }}/api/LostNFoundAPI
-          git pull origin main
-          npm install
-          pm2 start all
-          sudo systemctl restart nginx
+       
