@@ -1,9 +1,9 @@
-name: Deploy Backend
+name: Deploy API
 
 on:
   push:
     branches:
-      - main  # Change this to your main branch if different
+      - main
 
 jobs:
   deploy:
@@ -13,31 +13,35 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '16'
-
     - name: Install dependencies
       run: |
-        cd api/LostNFoundAPI
         npm install
+      working-directory: ./LostNFoundAPI
 
-    - name: Deploy to server
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SERVER_USER: ${{ secrets.SERVER_USER }}
-        SERVER_IP: ${{ secrets.SERVER_IP }}
-      run: |
-        sudo apt-get install -y rsync
-        rsync -avz -e "ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY" api/LostNFoundAPI/* $SERVER_USER@$SERVER_IP:/home/$SERVER_USER/api/LostNFoundAPI/
-        ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $SERVER_USER@$SERVER_IP "pm2 restart all"
-        ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $SERVER_USER@$SERVER_IP "sudo systemctl restart nginx"
+    - name: Deploy to primary server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP_PRIMARY }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          pm2 stop all
+          cd /home/${{ secrets.SERVER_USER }}/api/LostNFoundAPI
+          git pull origin main
+          npm install
+          pm2 start all
+          sudo systemctl restart nginx
 
-    - name: Ensure pm2 is installed on server
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        SERVER_USER: ${{ secrets.SERVER_USER }}
-        SERVER_IP: ${{ secrets.SERVER_IP }}
-      run: |
-        ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY $SERVER_USER@$SERVER_IP "npm install -g pm2"
+    - name: Deploy to secondary server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP_SECONDARY }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          pm2 stop all
+          cd /home/${{ secrets.SERVER_USER }}/api/LostNFoundAPI
+          git pull origin main
+          npm install
+          pm2 start all
+          sudo systemctl restart nginx
