@@ -563,22 +563,29 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
   }
 });
 
- // Definir um endpoint GET para buscar todos os leilões ativos (protected route)
-router.get('/auctions/active', policeAuthMiddleware, isAuthenticated, async (req, res) => {
-  try {
-    // Consulta para buscar todos os leilões ativos
-    const result = await pool.query('SELECT * FROM Leilao WHERE ativo = TRUE');
-    
-    // Verificar se existem leilões ativos
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nenhum leilão ativo encontrado' });
-    }
+ // Definir um endpoint GET para buscar todos os leilões do past, active and future(protected route)
+ router.get('/auctions', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  const { type } = req.query;
+  
+  let query = '';
+  let queryParams = [];
+  
+  if (type === 'past') {
+    query = 'SELECT * FROM Leilao WHERE data_fim < NOW()';
+  } else if (type === 'active') {
+    query = 'SELECT * FROM Leilao WHERE data_inicio <= NOW() AND data_fim >= NOW()';
+  } else if (type === 'future') {
+    query = 'SELECT * FROM Leilao WHERE data_inicio > NOW()';
+  } else {
+    return res.status(400).json({ error: 'Invalid type parameter. Valid values are: past, active, future' });
+  }
 
-    // Retornar os leilões ativos
-    res.status(200).json(result.rows);
+  try {
+    const { rows } = await pool.query(query, queryParams);
+    res.json(rows);
   } catch (error) {
-    console.error('Erro ao buscar leilões ativos:', error);
-    res.status(500).json({ error: 'Erro interno do servidor ao buscar leilões ativos' });
+    console.error('Error executing query', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
