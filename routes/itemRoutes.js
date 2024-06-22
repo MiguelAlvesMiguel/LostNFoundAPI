@@ -189,26 +189,21 @@ router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
 });
 
 // Search lost items by description (RF-10)
-router.get("/lost/search", isAuthenticated, async (req, res) => {
-  const { description } = req.query;
+router.get("/lost/search", async (req, res) => {
+  const { query } = req.query;
 
-  // Input validation and sanitization
-  if (!description) {
-    console.log("Description parameter is required");
-    return res.status(400).json({ error: "Description parameter is required" });
+  if (!query) {
+    console.log("Query parameter is required");
+    return res.status(400).json({ error: "Query parameter is required" });
   }
-  console.log("Description:", description);
 
-  const sanitizedDescription = sanitizeInput(description);
-
-  console.log("Sanitized description:", sanitizedDescription);
+  const sanitizedQuery = sanitizeInput(query);
 
   try {
     const result = await pool.query(
-      "SELECT * FROM ObjetoPerdido WHERE descricao ILIKE $1",
-      [`%${sanitizedDescription}%`]
+      "SELECT * FROM ObjetoPerdido WHERE titulo ILIKE $1 OR descricao ILIKE $2 OR categoria ILIKE $3",
+      [`%${sanitizedQuery}%`, `%${sanitizedQuery}%`, `%${sanitizedQuery}%`]
     );
-    console.log("Lost items search result:", result.rows);
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Error searching lost items:", error);
