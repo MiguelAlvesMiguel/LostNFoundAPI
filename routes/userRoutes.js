@@ -128,8 +128,8 @@ router.post('/google-signin', async (req, res) => {
 
     res.status(200).json({ message: 'User signed in with Google successfully', user });
   } catch (error) {
-    console.error('Failed to fetch lost items:', error);
-    return [];
+    console.error('Error signing in with Google:', error);
+    res.status(401).json({ error: error.message });
   }
 });
 
@@ -160,7 +160,6 @@ router.put('/me', firebaseAuthMiddleware, async (req, res) => {
   const { nome, genero, data_nasc, morada, telemovel, historico, ativo } = req.body;
   const firebase_uid = req.user.uid;
 
-export const registerLostItem = async (itemData, token) => {
   try {
     const result = await pool.query(
       'UPDATE Utilizador SET nome = $1, genero = $2, data_nasc = $3, morada = $4, telemovel = $5, historico = $6, ativo = $7 WHERE firebase_uid = $8',
@@ -173,15 +172,14 @@ export const registerLostItem = async (itemData, token) => {
       res.status(200).json({ message: 'User details updated' });
     }
   } catch (error) {
-    console.error('Failed to register lost item:', error);
-    return null;
+    console.error('Error updating user details:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.delete('/me', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
-export const updateLostItemDetails = async (itemId, itemData, token) => {
   try {
     const result = await pool.query('DELETE FROM Utilizador WHERE firebase_uid = $1', [firebase_uid]);
 
@@ -191,15 +189,14 @@ export const updateLostItemDetails = async (itemId, itemData, token) => {
       res.status(204).end();
     }
   } catch (error) {
-    console.error('Failed to update lost item details:', error);
-    return null;
+    console.error('Error removing user account:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.get('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
-export const deleteLostItem = async (itemId, token) => {
   try {
     const result = await pool.query(
       'SELECT ID as notificationId, mensagem as message, data as date FROM Notificacao WHERE utilizador_id = $1',
@@ -208,8 +205,8 @@ export const deleteLostItem = async (itemId, token) => {
 
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Failed to delete lost item:', error);
-    return false;
+    console.error('Error retrieving user notifications:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -217,7 +214,6 @@ router.post('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
   const { message } = req.body;
 
-export const searchLostItemsByDescription = async (description, token) => {
   try {
     const result = await pool.query(
       'INSERT INTO Notificacao (utilizador_id, mensagem, data) VALUES ($1, $2, NOW()) RETURNING ID',
@@ -230,8 +226,8 @@ export const searchLostItemsByDescription = async (description, token) => {
       res.status(201).json({ message: 'Notification sent successfully' });
     }
   } catch (error) {
-    console.error('Failed to search lost items by description:', error);
-    return [];
+    console.error('Error sending notification:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -239,7 +235,6 @@ router.put('/me/status', firebaseAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
   const { status } = req.body;
 
-export const searchLostItemsByCategory = async (category, token) => {
   try {
     const result = await pool.query(
       'UPDATE Utilizador SET ativo = $1 WHERE firebase_uid = $2',
@@ -252,10 +247,10 @@ export const searchLostItemsByCategory = async (category, token) => {
       res.status(200).json({ message: 'User account status updated' });
     }
   } catch (error) {
-    console.error('Failed to search lost items by category:', error);
-    return [];
+    console.error('Error updating user account status:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-}
+});
 
 router.post('/logout', async (req, res) => {
   await auth.signOut();
@@ -263,24 +258,9 @@ router.post('/logout', async (req, res) => {
   if (auth.currentUser) {
     return res.status(500).json({ error: 'Error logging out' });
   }
-}
 
-export const deliverFoundItem = async (itemId, ownerId, deliveryDate, token) => {
-  try {
-    const response = await axios.post(`${BASE_URL}/items/found/${itemId}/deliver`, {
-      ownerId,
-      deliveryDate,
-    }, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Failed to deliver found item:', error);
-    return null;
-  }
-}
+  res.status(200).json({ message: 'Logout successful' });
+});
 
 
 router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
