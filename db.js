@@ -4,7 +4,7 @@ const pool = new Pool({
   user: "repmgr",
   host: "34.175.217.87",
   database: "repmgr",
-  password: "postgres",
+  password: "Bananas4242",
   port: 5432, // default PostgreSQL port
 });
 
