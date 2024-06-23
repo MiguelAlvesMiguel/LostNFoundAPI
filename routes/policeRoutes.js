@@ -10,6 +10,7 @@ const { getAuth } = require('firebase/auth');
 
 const firebaseAuth = require('../middlewares/firebaseAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -51,8 +52,7 @@ const sanitizeURL = (url) => {
   }
 };
 
-// Define the PUT endpoint to claim a found item
-router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, doubleAuthMiddleware, async (req, res) => {
   const itemId = parseInt(req.params.itemId);
   const claimantId = req.query.claimantId;
 
@@ -87,7 +87,7 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, async 
     }
 
     // Update the item to be claimed
-    await pool.query('UPDATE ObjetoAchado SET ativo = false, claimant_id = $1, data_claimed = $2  WHERE ID = $3', [sanitizedClaimantId,currentDate,itemId]);
+    await pool.query('UPDATE ObjetoAchado SET ativo = false, claimant_id = $1, data_claimed = $2 WHERE ID = $3', [sanitizedClaimantId, currentDate, itemId]);
 
     // Commit transaction
     await pool.query('COMMIT');

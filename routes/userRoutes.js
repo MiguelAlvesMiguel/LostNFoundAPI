@@ -15,6 +15,7 @@ const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
 const auth = getAuth(firebaseApp); // Get the Auth instance using the initialized Firebase App
 const admin = require('../middlewares/firebaseAdmin'); // Use the initialized Firebase Admin
 const { sendPasswordResetEmail } = require('firebase/auth');
+const policeAuthMiddleware = require('../middlewares/policeAuth');
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -41,6 +42,18 @@ router.get('/', (req, res) => {
   console.log('GET /v1/users');
   res.status(200).json({ message: 'Users endpoint working!' });
 });
+
+// routes/userRoutes.js
+router.get('/users', policeAuthMiddleware,isAuthenticated,doubleAuthMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT firebase_uid, nome, email FROM Utilizador');
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error retrieving users:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 router.post('/register',
   [
