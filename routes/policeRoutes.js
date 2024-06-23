@@ -56,57 +56,55 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, double
   const itemId = parseInt(req.params.itemId);
   const claimantId = req.query.claimantId;
 
-  // Validate that itemId and claimantId are valid integers
   if (isNaN(itemId)) {
-    return res.status(400).send({ error: 'Invalid itemId, must be integer' });
+    return res.status(400).json({ error: 'Invalid itemId, must be integer' });
   }
 
   if (!claimantId) {
-    return res.status(400).send({ error: 'claimantId missing' });
+    return res.status(400).json({ error: 'claimantId missing' });
   }
-  
+
   const sanitizedClaimantId = sanitizeInput(claimantId);
-  const currentDate = new Date().toISOString().split('T')[0]; // Get the current date in YYYY-MM-DD format
+  const currentDate = new Date().toISOString().split('T')[0];
 
   try {
-    // Begin transaction
     await pool.query('BEGIN');
 
-    // Check if the claimant exists
+    if (sanitizedClaimantId === '0') {
+      await pool.query('UPDATE ObjetoAchado SET ativo = true, claimant_id = NULL, data_claimed = NULL WHERE ID = $1', [itemId]);
+      await pool.query('COMMIT');
+      return res.json({ message: 'Item activated and owner removed' });
+    }
+
     const checkClaimant = await pool.query('SELECT firebase_uid FROM Utilizador WHERE firebase_uid = $1', [sanitizedClaimantId]);
     if (checkClaimant.rowCount === 0) {
       await pool.query('ROLLBACK');
-      return res.status(404).send('Claimant not found');
+      return res.status(404).json({ error: 'Claimant not found' });
     }
 
-    // Check if the item is active, not already claimed, and within the claimable date range
-    const checkItem = await pool.query('SELECT ativo, data_limite FROM ObjetoAchado WHERE ID = $1 AND ativo = true', [itemId]);
+    const checkItem = await pool.query('SELECT ativo, data_limite FROM ObjetoAchado WHERE ID = $1', [itemId]);
     if (checkItem.rowCount === 0) {
       await pool.query('ROLLBACK');
-      return res.status(404).send('Item not found or already claimed');
+      return res.status(404).json({ error: 'Item not found' });
     }
 
     const dataLimite = checkItem.rows[0].data_limite;
     if (currentDate > dataLimite) {
       await pool.query('ROLLBACK');
-      return res.status(400).send('Cannot claim item past the claimable date');
+      return res.status(400).json({ error: 'Cannot claim item past the claimable date' });
     }
 
-    // Update the item to be claimed
     await pool.query('UPDATE ObjetoAchado SET ativo = false, claimant_id = $1, data_claimed = $2 WHERE ID = $3', [sanitizedClaimantId, currentDate, itemId]);
-
-    // Commit transaction
     await pool.query('COMMIT');
 
-    res.send('Item claimed successfully');
-
+    res.json({ message: 'Item claimed successfully' });
   } catch (error) {
-    // Rollback in case of error
     await pool.query('ROLLBACK');
     console.error('Query Error', error);
-    res.status(500).send('Server error while claiming item');
+    res.status(500).json({ error: 'Server error while claiming item' });
   }
 });
+
 
 // Get all found items 
 router.get('/items/found', policeAuthMiddleware, isAuthenticated, async (req, res) => {
