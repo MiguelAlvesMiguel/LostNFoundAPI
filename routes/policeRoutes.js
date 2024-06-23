@@ -73,17 +73,23 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, double
     await pool.query('BEGIN');
 
     // Check if the claimant exists
-    const checkClaimant = await pool.query('SELECT firebase_uid FROM utilizador WHERE firebase_uid = $1', [sanitizedClaimantId]);
+    const checkClaimant = await pool.query('SELECT firebase_uid FROM Utilizador WHERE firebase_uid = $1', [sanitizedClaimantId]);
     if (checkClaimant.rowCount === 0) {
       await pool.query('ROLLBACK');
       return res.status(404).send('Claimant not found');
     }
 
-    // Check if the item is active and not already claimed
-    const checkItem = await pool.query('SELECT ativo FROM ObjetoAchado WHERE ID = $1 AND ativo = true', [itemId]);
+    // Check if the item is active, not already claimed, and within the claimable date range
+    const checkItem = await pool.query('SELECT ativo, data_limite FROM ObjetoAchado WHERE ID = $1 AND ativo = true', [itemId]);
     if (checkItem.rowCount === 0) {
       await pool.query('ROLLBACK');
       return res.status(404).send('Item not found or already claimed');
+    }
+
+    const dataLimite = checkItem.rows[0].data_limite;
+    if (currentDate > dataLimite) {
+      await pool.query('ROLLBACK');
+      return res.status(400).send('Cannot claim item past the claimable date');
     }
 
     // Update the item to be claimed
@@ -562,6 +568,33 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+ // Definir um endpoint GET para buscar todos os leilões do past, active and future(protected route)
+ router.get('/auctions', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+  const { type } = req.query;
+  
+  let query = '';
+  let queryParams = [];
+  
+  if (type === 'past') {
+    query = 'SELECT * FROM Leilao WHERE data_fim < NOW()';
+  } else if (type === 'active') {
+    query = 'SELECT * FROM Leilao WHERE data_inicio <= NOW() AND data_fim >= NOW()';
+  } else if (type === 'future') {
+    query = 'SELECT * FROM Leilao WHERE data_inicio > NOW()';
+  } else {
+    return res.status(400).json({ error: 'Invalid type parameter. Valid values are: past, active, future' });
+  }
+
+  try {
+    const { rows } = await pool.query(query, queryParams);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error executing query', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 module.exports = router;
