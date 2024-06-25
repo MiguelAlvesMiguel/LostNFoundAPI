@@ -67,12 +67,24 @@ router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, isAuthentica
       res.status(500).json({ message: 'Server error' });
   }
 });
+function sanitizeeInput(input) {
+  if (typeof input === 'string') {
+    return input.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  return input;
+}
 
-
-router.put('/auctions/:auctionId', isAuthenticated, policeAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+router.put('/auctions/:auctionId', isAuthenticated,doubleAuthMiddleware, policeAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
   const { dataInicio, dataFim, localizacao, ativo } = req.body;
-  const userId = req.userId;
+
+  //Log all params
+  console.log('auctionId:', auctionId);
+  console.log('dataInicio:', dataInicio);
+  console.log('dataFim:', dataFim);
+  console.log('localizacao:', localizacao);
+  console.log('ativo:', ativo);
+  
 
   // Input validation and sanitization
   if (isNaN(parseInt(auctionId))) {
@@ -80,12 +92,20 @@ router.put('/auctions/:auctionId', isAuthenticated, policeAuthMiddleware,doubleA
     return res.status(400).json({ error: 'Invalid auction ID' });
   }
 
-  const sanitizedLocalizacao = sanitizeInput(localizacao);
+  const sanitizedLocalizacao = sanitizeeInput(localizacao);
+  const sanitizedDataInicio = sanitizeeInput(dataInicio);
+  const sanitizedDataFim = sanitizeeInput(dataFim);
+
+  //Log all sanitized params
+  console.log('sanitizedDataInicio:', sanitizedDataInicio);
+  console.log('sanitizedDataFim:', sanitizedDataFim);
+  console.log('sanitizedLocalizacao:', sanitizedLocalizacao);
+  console.log('ativo:', ativo);
 
   try {
     const result = await pool.query(
       'UPDATE Leilao SET data_inicio = $1, data_fim = $2, localizacao = $3, ativo = $4 WHERE ID = $5',
-      [dataInicio, dataFim, sanitizedLocalizacao, ativo, auctionId]
+      [sanitizedDataInicio, sanitizedDataFim, sanitizedLocalizacao, ativo, auctionId]
     );
 
     if (result.rowCount === 0) {
@@ -100,6 +120,7 @@ router.put('/auctions/:auctionId', isAuthenticated, policeAuthMiddleware,doubleA
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
@@ -126,7 +147,6 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
@@ -165,6 +185,7 @@ router.get('/auctions', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // Subscribe and cancel notifications about an auction (RF-20)
 router.post('/auctions/:auctionId/notify', isAuthenticated, async (req, res) => {
