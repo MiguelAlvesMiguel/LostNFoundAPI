@@ -240,7 +240,7 @@ router.post('/auctions/:auctionId/start', isAuthenticated, async (req, res) => {
   }
 });
 
-router.post('/auctions/:auctionId/end', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/end', isAuthenticated, policeAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
 
   // Input validation
@@ -250,7 +250,10 @@ router.post('/auctions/:auctionId/end', isAuthenticated, async (req, res) => {
   }
 
   try {
-    const result = await pool.query('UPDATE Leilao SET ativo = false WHERE ID = $1', [auctionId]);
+    const result = await pool.query(
+      'UPDATE Leilao SET ativo = false, data_fim = NOW() WHERE ID = $1',
+      [auctionId]
+    );
 
     if (result.rowCount === 0) {
       console.log('Auction not found');
@@ -264,6 +267,7 @@ router.post('/auctions/:auctionId/end', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // View bidding history in an auction (RF-23)
 router.get('/auctions/:auctionId/bids', isAuthenticated, async (req, res) => {
