@@ -286,9 +286,10 @@ router.get('/auctions/:auctionId/bids', isAuthenticated, async (req, res) => {
 });
 
 // Bid on an object in an auction (RF-24)
+// Bid on an object in an auction (RF-24)
 router.post('/auctions/:auctionId/bid', isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
-  const { utilizadorId, valorLicitacao } = req.body;
+  const { valorLicitacao } = req.body; // Remove utilizadorId from body
 
   // Input validation
   if (isNaN(parseInt(auctionId)) || isNaN(parseFloat(valorLicitacao))) {
@@ -297,6 +298,30 @@ router.post('/auctions/:auctionId/bid', isAuthenticated, async (req, res) => {
   }
 
   try {
+    const utilizadorId = req.userId; // Get userId from req object
+
+    // Check the highest bid or the base value of the auction
+    const auctionResult = await pool.query(
+      'SELECT valor_base FROM Leilao WHERE id = $1',
+      [auctionId]
+    );
+
+    if (auctionResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Auction not found' });
+    }
+
+    const highestBidResult = await pool.query(
+      'SELECT MAX(valor_licitacao) AS highest_bid FROM Licitacao WHERE leilao_id = $1',
+      [auctionId]
+    );
+
+    const highestBid = highestBidResult.rows[0].highest_bid || auctionResult.rows[0].valor_base;
+
+    if (parseFloat(valorLicitacao) <= highestBid) {
+      return res.status(400).json({ error: 'Bid value must be higher than the current highest bid or base value' });
+    }
+
+    // Insert the new bid
     const result = await pool.query(
       'INSERT INTO Licitacao (leilao_id, utilizador_id, valor_licitacao) VALUES ($1, $2, $3)',
       [auctionId, utilizadorId, valorLicitacao]
@@ -309,6 +334,8 @@ router.post('/auctions/:auctionId/bid', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
 
 // Process payment for a bidded object (RF-25)
 router.post('/auctions/:auctionId/pay', isAuthenticated, async (req, res) => {
