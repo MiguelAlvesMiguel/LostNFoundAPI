@@ -69,7 +69,7 @@ router.post('/auctions',doubleAuthMiddleware, policeAuthMiddleware, isAuthentica
 });
 
 
-router.put('/auctions/:auctionId', isAuthenticated, async (req, res) => {
+router.put('/auctions/:auctionId', isAuthenticated, policeAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
   const { dataInicio, dataFim, localizacao, ativo } = req.body;
   const userId = req.userId;
@@ -126,6 +126,7 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
@@ -442,6 +443,7 @@ router.post('/notify-auction-event', firebaseAuth, jwtCheck, async (req, res) =>
 // Endpoint to register a possible owner of a found object
 router.post('/register-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
+//sanitize input
 
   try {
       const result = await pool.query(

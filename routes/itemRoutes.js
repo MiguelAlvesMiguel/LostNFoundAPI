@@ -192,7 +192,7 @@ router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
   }
 });
 
-// Search lost items by description (RF-10)
+// Search lost items by qualquer cena (RF-xx)
 router.get("/lost/search", async (req, res) => {
   const { query } = req.query;
 
@@ -391,21 +391,7 @@ router.post("/found/:itemId/deliver", isAuthenticated, async (req, res) => {
   }
 });
 
-// Endpoint to search lost objects by category
-router.get("/lost/search", firebaseAuth, jwtCheck, async (req, res) => {
-  const { category } = req.query;
 
-  try {
-    const result = await pool.query(
-      "SELECT * FROM ObjetoPerdido WHERE categoria = $1 AND ativo = TRUE",
-      [category]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
-  }
-});
 
 // Endpoint to search found objects corresponding to lost objects
 router.get("/found/search", firebaseAuth, jwtCheck, async (req, res) => {
