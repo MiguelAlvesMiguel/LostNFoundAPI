@@ -36,7 +36,7 @@ const sanitizeInput = (input) => {
 //Get all lost items
 router.get("/lost", async (req, res) => {
   try {
-    const { rows } = await pool.query("SELECT * FROM ObjetoPerdido");
+    const { rows } = await pool.query("SELECT * FROM ObjetoPerdido where ativo = true");
     res.json(rows);
   } catch (error) {
     console.error("Error executing query", error);
