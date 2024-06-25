@@ -6,6 +6,7 @@ const admin = require("firebase-admin");
 const firebaseAuth = require("../middlewares/firebaseAuthMiddleware");
 const jwtCheck = require("../middlewares/jwtCheckMiddleware");
 const doubleAuthMiddleware = require("../middlewares/doubleAuthMiddleware");
+const policeAuthMiddleware = require("../middlewares/policeAuth");
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -85,6 +86,53 @@ router.get("/lost/search", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// Endpoint to search found objects corresponding to lost objects
+router.get("/found/search", policeAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+  const { title, description, category } = req.query;
+
+  console.log("Search parameters:", { title, description, category });
+  if (!title && !description && !category) {
+    console.log("At least one of the following parameters is required: title, description, category");
+    return res.status(400).json({ error: "At least one of the following parameters is required: title, description, category" });
+  }
+
+  // Sanitize inputs
+  const sanitizedTitle = title ? sanitizeInput(title) : null;
+  const sanitizedDescription = description ? sanitizeInput(description) : null;
+  const sanitizedCategory = category ? sanitizeInput(category) : null;
+
+  // Build the query dynamically
+  let query = "SELECT * FROM ObjetoAchado WHERE ativo = TRUE";
+  const queryParams = [];
+  let paramIndex = 1;
+
+  if (sanitizedTitle) {
+    query += ` AND titulo ILIKE $${paramIndex++}`;
+    queryParams.push(`%${sanitizedTitle}%`);
+  }
+  
+  if (sanitizedDescription) {
+    query += ` AND descricao_curta ILIKE $${paramIndex++}`;
+    queryParams.push(`%${sanitizedDescription}%`);
+  }
+  
+  if (sanitizedCategory) {
+    query += ` AND categoria ILIKE $${paramIndex++}`;
+    queryParams.push(`%${sanitizedCategory}%`);
+  }
+
+  try {
+    const result = await pool.query(query, queryParams);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error searching found items:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+module.exports = router;
+
 
 //Get specific lost item
 router.get("/lost/:itemId", async (req, res) => {
@@ -443,22 +491,6 @@ router.post("/found/:itemId/deliver", isAuthenticated, async (req, res) => {
 
 
 
-// Endpoint to search found objects corresponding to lost objects
-router.get("/found/search", firebaseAuth, jwtCheck, async (req, res) => {
-  const { titulo, descricao } = req.query;
 
-  try {
-    const result = await pool.query(
-      `SELECT * FROM ObjetoAchado 
-           WHERE (titulo ILIKE $1 OR descricao_curta ILIKE $2 OR categoria = $3) 
-           AND ativo = TRUE`,
-      [`%${titulo}%`, `%${descricao}%`, category]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Server error");
-  }
-});
 
 module.exports = router;
