@@ -106,6 +106,7 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, double
 });
 
 
+
 // Get all found items 
 router.get('/items/found', policeAuthMiddleware, isAuthenticated, async (req, res) => {
   
