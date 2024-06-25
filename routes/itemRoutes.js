@@ -5,6 +5,7 @@ const admin = require("firebase-admin");
 
 const firebaseAuth = require("../middlewares/firebaseAuthMiddleware");
 const jwtCheck = require("../middlewares/jwtCheckMiddleware");
+const doubleAuthMiddleware = require("../middlewares/doubleAuthMiddleware");
 
 const isAuthenticated = async (req, res, next) => {
   try {
@@ -110,12 +111,10 @@ router.post("/lost", isAuthenticated, async (req, res) => {
   }
 });
 
-
 // Edit details of a lost item (RF-06)
-router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
+router.put("/lost/:itemId", isAuthenticated, doubleAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
-  const { descricao, categoria, data_perdido, localizacao_perdido, ativo } =
-    req.body;
+  const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido, ativo } = req.body;
   const userId = req.userId;
 
   // Input validation and sanitization
@@ -124,6 +123,8 @@ router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
     return res.status(400).json({ error: "Invalid item ID" });
   }
 
+  const sanitizedTitulo = sanitizeInput(titulo);
+  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
   const sanitizedDescricao = sanitizeInput(descricao);
   const sanitizedCategoria = sanitizeInput(categoria);
   const sanitizedLocalizacao = {
@@ -133,8 +134,10 @@ router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
 
   try {
     const result = await pool.query(
-      "UPDATE ObjetoPerdido SET descricao = $1, categoria = $2, data_perdido = $3, localizacao_perdido = $4, ativo = $5 WHERE ID = $6 AND utilizador_id = $7",
+      "UPDATE ObjetoPerdido SET titulo = $1, descricao_curta = $2, descricao = $3, categoria = $4, data_perdido = $5, localizacao_perdido = $6, ativo = $7 WHERE ID = $8 AND utilizador_id = $9",
       [
+        sanitizedTitulo,
+        sanitizedDescricaoCurta,
         sanitizedDescricao,
         sanitizedCategoria,
         data_perdido,
@@ -157,6 +160,7 @@ router.put("/lost/:itemId", isAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 // Remove a lost item (RF-06)
 router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
