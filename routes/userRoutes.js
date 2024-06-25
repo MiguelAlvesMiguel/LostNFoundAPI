@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
     console.log('User logged in successfully:', user);
-    res.status(200).json({ message: 'User logged in successfully', user, accessToken, userType });
+    res.status(200).json({ message: 'User logged in successfully!', userType,user, accessToken });
   } catch (error) {
     console.error('Error logging in user:', error);
     res.status(401).json({ error: error.message });

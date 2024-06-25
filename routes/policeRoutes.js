@@ -34,6 +34,7 @@ const isAuthenticated = async (req, res, next) => {
 };
 
 const router = express.Router();
+// Define the PUT endpoint to edit an existing police member (protected route)
 
 // Sanitize input data
 const sanitizeInput = (input) => {
@@ -51,6 +52,123 @@ const sanitizeURL = (url) => {
     return null;
   }
 };
+
+router.put('/members/:firebaseUid', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+  const { firebaseUid } = req.params;
+  const { posto_policia, historico_policia } = req.body;
+
+  const sanitizeInput2 = (input) => {
+    if (typeof input === 'string') {
+      return input.replace(/[^a-zA-Z0-9\s]/g, '');
+    } else if (typeof input === 'object' && input !== null) {
+      const sanitizedObject = {};
+      for (const key in input) {
+        sanitizedObject[key] = sanitizeInput2(input[key]);
+      }
+      return sanitizedObject;
+    }
+    return input;
+  };
+
+  const sanitizedFirebaseUid = sanitizeInput2(firebaseUid);
+  const sanitizedPosto = posto_policia ? parseInt(sanitizeInput2(posto_policia)) : null;
+  let sanitizedHistorico = null;
+
+  if (historico_policia) {
+    sanitizedHistorico = JSON.stringify(sanitizeInput2(historico_policia));
+  }
+
+  try {
+    // Check if the user exists in the Utilizador table and is active
+    const userCheckQuery = 'SELECT firebase_uid FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
+    const userCheckResult = await pool.query(userCheckQuery, [sanitizedFirebaseUid]);
+
+    if (userCheckResult.rowCount === 0) {
+      return res.status(404).json({ error: 'User not found or inactive.' });
+    }
+
+    const userId = userCheckResult.rows[0].firebase_uid;
+
+    console.log('userId:', userId);
+
+    // Check if the police member exists in the MembroPolicia table
+    const checkQuery = 'SELECT posto_policia FROM MembroPolicia WHERE utilizador_id = $1';
+    const checkResult = await pool.query(checkQuery, [userId]);
+
+    console.log('checkResult:', checkResult.rows);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Police member not found.' });
+    }
+
+    const currentPosto = checkResult.rows[0].posto_policia;
+
+    // Prepare the SQL query to update the police member
+    const updateQuery = `
+      UPDATE MembroPolicia
+      SET posto_policia = COALESCE($1, posto_policia), historico_policia = COALESCE($2::jsonb, historico_policia)
+      WHERE utilizador_id = $3
+    `;
+    const values = [sanitizedPosto, sanitizedHistorico, userId];
+
+    // Execute the query with parameterized values to prevent SQL injection
+    await pool.query(updateQuery, values);
+
+    // Return a 200 response to indicate successful update
+    res.status(200).json({ message: 'Police member updated successfully' });
+
+  } catch (error) {
+    console.error('Error updating police member:', error);
+    res.status(500).json({ error: 'Server error while updating police member.' });
+  }
+});
+
+// Define the DELETE endpoint to remove a police member (protected route)
+router.delete('/members/:firebase_uid', adminAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
+  const { firebase_uid } = req.params;
+
+  try {
+    // Check if the police member exists in the MembroPolicia table
+    const checkQuery = 'SELECT id FROM MembroPolicia WHERE utilizador_id = $1';
+    const checkResult = await pool.query(checkQuery, [firebase_uid]);
+
+    if (checkResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Police member not found.' });
+    }
+
+    const policeMemberId = checkResult.rows[0].id;
+
+    // Select a default police member ID (ensure there is a default police member in your database)
+    const defaultPoliceMemberQuery = 'SELECT id FROM MembroPolicia LIMIT 1';
+    const defaultPoliceMemberResult = await pool.query(defaultPoliceMemberQuery);
+
+    if (defaultPoliceMemberResult.rowCount === 0) {
+      return res.status(500).json({ error: 'No default police member found.' });
+    }
+
+    const defaultPoliceMemberId = defaultPoliceMemberResult.rows[0].id;
+
+    // Update references to the default police member
+    const updateObjetoAchadoQuery = 'UPDATE ObjetoAchado SET policial_id = $1 WHERE policial_id = $2';
+    await pool.query(updateObjetoAchadoQuery, [defaultPoliceMemberId, policeMemberId]);
+
+    // Prepare the SQL query to delete the police member
+    const deletePoliceMemberQuery = 'DELETE FROM MembroPolicia WHERE utilizador_id = $1';
+    await pool.query(deletePoliceMemberQuery, [firebase_uid]);
+
+    // Prepare the SQL query to delete the user from Utilizador table
+    const deleteUserQuery = 'DELETE FROM Utilizador WHERE firebase_uid = $1';
+    await pool.query(deleteUserQuery, [firebase_uid]);
+
+    // Return a 200 response to indicate successful deletion
+    res.status(200).json({ message: 'Police member and associated user deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting police member:', error);
+    res.status(500).json({ error: 'Server error while deleting police member.' });
+  }
+});
+
 
 router.put('/items/:itemId/claim', policeAuthMiddleware, doubleAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const itemId = parseInt(req.params.itemId);
@@ -299,113 +417,10 @@ router.post('/members', adminAuthMiddleware,doubleAuthMiddleware, async (req, re
   }
 });
 
-// Define the PUT endpoint to edit an existing police member (protected route)
-router.put('/members/:firebaseUid', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
-  const { firebaseUid } = req.params;
-  const { posto_policia, historico_policia } = req.body;
 
-  const sanitizeInput2 = (input) => {
-    if (typeof input === 'string') {
-      return input.replace(/[^a-zA-Z0-9\s]/g, '');
-    } else if (typeof input === 'object' && input !== null) {
-      const sanitizedObject = {};
-      for (const key in input) {
-        sanitizedObject[key] = sanitizeInput2(input[key]);
-      }
-      return sanitizedObject;
-    }
-    return input;
-  };
 
-  const sanitizedFirebaseUid = sanitizeInput2(firebaseUid);
-  const sanitizedPosto = posto_policia ? parseInt(sanitizeInput2(posto_policia)) : null;
-  let sanitizedHistorico = null;
 
-  if (historico_policia) {
-    sanitizedHistorico = JSON.stringify(sanitizeInput2(historico_policia));
-  }
 
-  try {
-    // Check if the user exists in the Utilizador table and is active
-    const userCheckQuery = 'SELECT firebase_uid FROM Utilizador WHERE firebase_uid = $1 AND ativo = TRUE';
-    const userCheckResult = await pool.query(userCheckQuery, [sanitizedFirebaseUid]);
-
-    if (userCheckResult.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found or inactive.' });
-    }
-
-    const userId = userCheckResult.rows[0].firebase_uid;
-
-    console.log('userId:', userId);
-
-    // Check if the police member exists in the MembroPolicia table
-    const checkQuery = 'SELECT posto_policia FROM MembroPolicia WHERE utilizador_id = $1';
-    const checkResult = await pool.query(checkQuery, [userId]);
-
-    console.log('checkResult:', checkResult.rows);
-
-    if (checkResult.rowCount === 0) {
-      return res.status(404).json({ error: 'Police member not found.' });
-    }
-
-    const currentPosto = checkResult.rows[0].posto_policia;
-
-    // Prepare the SQL query to update the police member
-    const updateQuery = `
-      UPDATE MembroPolicia
-      SET posto_policia = COALESCE($1, posto_policia), historico_policia = COALESCE($2::jsonb, historico_policia)
-      WHERE utilizador_id = $3
-    `;
-    const values = [sanitizedPosto, sanitizedHistorico, userId];
-
-    // Execute the query with parameterized values to prevent SQL injection
-    await pool.query(updateQuery, values);
-
-    // Return a 200 response to indicate successful update
-    res.status(200).json({ message: 'Police member updated successfully' });
-
-  } catch (error) {
-    console.error('Error updating police member:', error);
-    res.status(500).json({ error: 'Server error while updating police member.' });
-  }
-});
-
-//Tive que mudar isto pk no frontend n dá jeito usar o firebase uid pk é um bocado sensível acho eu
-// Define the DELETE endpoint to remove a police member (protected route)
-router.delete('/members/:id', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
-  const policeMemberId = parseInt(req.params.id, 10);
-
-  if (isNaN(policeMemberId)) {
-    return res.status(400).json({ error: 'Invalid id. It must be a number.' });
-  }
-
-  try {
-    // Check if the police member exists in the MembroPolicia table
-    const checkQuery = 'SELECT utilizador_id FROM MembroPolicia WHERE id = $1';
-    const checkResult = await pool.query(checkQuery, [policeMemberId]);
-
-    if (checkResult.rowCount === 0) {
-      return res.status(404).json({ error: 'Police member not found.' });
-    }
-
-    const utilizadorId = checkResult.rows[0].utilizador_id;
-
-    // Prepare the SQL query to delete the police member
-    const deletePoliceMemberQuery = 'DELETE FROM MembroPolicia WHERE id = $1';
-    await pool.query(deletePoliceMemberQuery, [policeMemberId]);
-
-    // Prepare the SQL query to delete the user from Utilizador table
-    const deleteUserQuery = 'DELETE FROM Utilizador WHERE firebase_uid = $1';
-    await pool.query(deleteUserQuery, [utilizadorId]);
-
-    // Return a 200 response to indicate successful deletion
-    res.status(200).json({ message: 'Police member and associated user deleted successfully' });
-
-  } catch (error) {
-    console.error('Error deleting police member:', error);
-    res.status(500).json({ error: 'Server error while deleting police member.' });
-  }
-});
 
 // Define the POST endpoint to register a new police post (protected route)
 router.post('/posts', adminAuthMiddleware,doubleAuthMiddleware,async (req, res) => {
@@ -445,7 +460,7 @@ router.post('/posts', adminAuthMiddleware,doubleAuthMiddleware,async (req, res) 
   
 
 // Define the PUT endpoint to edit an existing police post (protected route)
-router.put('/posts/edit/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+router.put('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
   const { morada } = req.body;
 
@@ -484,8 +499,7 @@ router.put('/posts/edit/:postId', adminAuthMiddleware,doubleAuthMiddleware, asyn
   }
 });
 
-// Define the DELETE endpoint to remove a police post (protected route)
-router.delete('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+router.delete('/posts/:postId', adminAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
 
   if (isNaN(postId)) {
@@ -501,10 +515,30 @@ router.delete('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async 
       return res.status(404).json({ error: 'Police post not found.' });
     }
 
+    // Check if the "Sem-Abrigo" post exists or create it
+    const semAbrigoQuery = `
+      INSERT INTO PostoPolicia (morada)
+      VALUES ('Sem-Abrigo')
+      ON CONFLICT (morada) DO NOTHING
+      RETURNING ID
+    `;
+    const semAbrigoResult = await pool.query(semAbrigoQuery);
+
+    let semAbrigoId;
+    if (semAbrigoResult.rowCount === 0) {
+      const fetchSemAbrigoIdQuery = 'SELECT ID FROM PostoPolicia WHERE morada = $1';
+      const fetchSemAbrigoIdResult = await pool.query(fetchSemAbrigoIdQuery, ['Sem-Abrigo']);
+      semAbrigoId = fetchSemAbrigoIdResult.rows[0].id;
+    } else {
+      semAbrigoId = semAbrigoResult.rows[0].id;
+    }
+
+    // Update affected cops to the "Sem-Abrigo" post
+    const updateCopsQuery = 'UPDATE MembroPolicia SET posto_policia = $1 WHERE posto_policia = $2';
+    await pool.query(updateCopsQuery, [semAbrigoId, postId]);
+
     // Prepare the SQL query to delete the police post
     const deleteQuery = 'DELETE FROM PostoPolicia WHERE ID = $1';
-
-    // Execute the query with parameterized values to prevent SQL injection
     await pool.query(deleteQuery, [postId]);
 
     // Return a 200 response to indicate successful deletion
@@ -515,6 +549,8 @@ router.delete('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async 
     res.status(500).json({ error: 'Server error while deleting police post.' });
   }
 });
+
+
 
 // Define the GET endpoint to retrieve all police posts (protected route)
 router.get('/posts', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {

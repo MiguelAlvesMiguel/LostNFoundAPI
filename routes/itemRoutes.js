@@ -397,7 +397,7 @@ router.get(
 );
 
 // GET ALL FOUND ITEMS
-router.get("/found", doubleAuthMiddleware,policeAuthMiddleware, async (req, res) => {
+router.get("/found",  async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM ObjetoAchado");
     res.json(rows);
