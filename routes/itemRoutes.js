@@ -131,8 +131,6 @@ router.get("/found/search", policeAuthMiddleware,doubleAuthMiddleware, async (re
   }
 });
 
-module.exports = router;
-
 
 //Get specific lost item
 router.get("/lost/:itemId", async (req, res) => {
@@ -187,7 +185,7 @@ router.get("/lost/:itemId", async (req, res) => {
   }
 });
 
-router.post("/lost", isAuthenticated, async (req, res) => {
+router.post("/lost", isAuthenticated, doubleAuthMiddleware, async (req, res) => {
   const { titulo, descricao_curta, descricao, categoria, data_perdido, localizacao_perdido } = req.body;
   const userId =   req.userId;
   const ativo = true;
@@ -280,9 +278,8 @@ router.put("/lost/:itemId", isAuthenticated, doubleAuthMiddleware, async (req, r
   }
 });
 
-
 // Remove a lost item (RF-06)
-router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
+router.delete("/lost/:itemId", isAuthenticated,doubleAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
   const userId = req.userId;
 
@@ -314,7 +311,7 @@ router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
 
 
 // Search lost items by category (RF-11)
-router.get("/lost/category", isAuthenticated, async (req, res) => {
+router.get("/lost/category", doubleAuthMiddleware, async (req, res) => {
   const { category } = req.query;
 
   // Input validation and sanitization
@@ -341,10 +338,10 @@ router.get("/lost/category", isAuthenticated, async (req, res) => {
 // Compare a lost item with a found item (RF-13)
 router.get(
   "/compare/:lostItemId/:foundItemId",
-  isAuthenticated,
+  doubleAuthMiddleware,
   async (req, res) => {
     const { lostItemId, foundItemId } = req.params;
-    const userId = req.userId;
+   
 
     // Validate item IDs
     if (isNaN(parseInt(lostItemId)) || isNaN(parseInt(foundItemId))) {
@@ -400,7 +397,7 @@ router.get(
 );
 
 // GET ALL FOUND ITEMS
-router.get("/found", async (req, res) => {
+router.get("/found", doubleAuthMiddleware,policeAuthMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM ObjetoAchado");
     res.json(rows);
@@ -410,7 +407,7 @@ router.get("/found", async (req, res) => {
   }
 });
 //GET ESPECIFIC FOUND ITEM
-router.get("/found/:itemId", async (req, res) => {
+router.get("/found/:itemId",doubleAuthMiddleware,policeAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
 
   // Input validation
@@ -437,7 +434,7 @@ router.get("/found/:itemId", async (req, res) => {
 });
 
 // Register delivery of a found item to its owner (RF-16)
-router.post("/found/:itemId/deliver", isAuthenticated, async (req, res) => {
+router.post("/found/:itemId/deliver", isAuthenticated,doubleAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
   const { ownerId, deliveryDate } = req.body;
   const userId = req.userId;

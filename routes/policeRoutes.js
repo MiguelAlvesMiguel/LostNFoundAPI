@@ -52,7 +52,7 @@ const sanitizeURL = (url) => {
   }
 };
 
-router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, doubleAuthMiddleware, async (req, res) => {
+router.put('/items/:itemId/claim', policeAuthMiddleware, doubleAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const itemId = parseInt(req.params.itemId);
   const claimantId = req.query.claimantId;
 
@@ -108,7 +108,7 @@ router.put('/items/:itemId/claim', policeAuthMiddleware, isAuthenticated, double
 
 
 // Get all found items 
-router.get('/items/found', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.get('/items/found', policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   
   try {
     const { rows } = await pool.query('SELECT * FROM ObjetoAchado');
@@ -128,7 +128,7 @@ router.get('/items/found', policeAuthMiddleware, isAuthenticated, async (req, re
 
 
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
-router.post('/items/found/register', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.post('/items/found/register', policeAuthMiddleware, doubleAuthMiddleware,isAuthenticated, async (req, res) => {
 
 
   // Extract details from the request body
@@ -226,7 +226,7 @@ router.post('/items/found/register', policeAuthMiddleware, isAuthenticated, asyn
 
 
 // Define the POST endpoint to register a new police member (protected route)
-router.post('/members', adminAuthMiddleware, async (req, res) => {
+router.post('/members', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const { email, password, nome, genero, data_nasc, morada, telemovel, posto_policia, historico_policia } = req.body;
 
   const sanitizeInput2 = (input) => {
@@ -300,7 +300,7 @@ router.post('/members', adminAuthMiddleware, async (req, res) => {
 });
 
 // Define the PUT endpoint to edit an existing police member (protected route)
-router.put('/members/edit/:firebaseUid', adminAuthMiddleware, async (req, res) => {
+router.put('/members/edit/:firebaseUid', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const { firebaseUid } = req.params;
   const { posto_policia, historico_policia } = req.body;
 
@@ -372,7 +372,7 @@ router.put('/members/edit/:firebaseUid', adminAuthMiddleware, async (req, res) =
 
 //Tive que mudar isto pk no frontend n dá jeito usar o firebase uid pk é um bocado sensível acho eu
 // Define the DELETE endpoint to remove a police member (protected route)
-router.delete('/members/:id', adminAuthMiddleware, async (req, res) => {
+router.delete('/members/:id', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const policeMemberId = parseInt(req.params.id, 10);
 
   if (isNaN(policeMemberId)) {
@@ -408,7 +408,7 @@ router.delete('/members/:id', adminAuthMiddleware, async (req, res) => {
 });
 
 // Define the POST endpoint to register a new police post (protected route)
-router.post('/posts', adminAuthMiddleware, async (req, res) => {
+router.post('/posts', adminAuthMiddleware,doubleAuthMiddleware,async (req, res) => {
   // Extract the relevant field from the request body
   const { morada } = req.body;
 
@@ -445,7 +445,7 @@ router.post('/posts', adminAuthMiddleware, async (req, res) => {
   
 
 // Define the PUT endpoint to edit an existing police post (protected route)
-router.put('/posts/edit/:postId', adminAuthMiddleware, async (req, res) => {
+router.put('/posts/edit/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
   const { morada } = req.body;
 
@@ -485,7 +485,7 @@ router.put('/posts/edit/:postId', adminAuthMiddleware, async (req, res) => {
 });
 
 // Define the DELETE endpoint to remove a police post (protected route)
-router.delete('/posts/:postId', adminAuthMiddleware, async (req, res) => {
+router.delete('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
 
   if (isNaN(postId)) {
@@ -517,7 +517,7 @@ router.delete('/posts/:postId', adminAuthMiddleware, async (req, res) => {
 });
 
 // Define the GET endpoint to retrieve all police posts (protected route)
-router.get('/posts', adminAuthMiddleware, async (req, res) => {
+router.get('/posts', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   try {
     // Query to retrieve all police posts
     const policePostsQuery = `
@@ -535,7 +535,7 @@ router.get('/posts', adminAuthMiddleware, async (req, res) => {
 });
 
 // Define the GET endpoint to retrieve all police members (protected route)
-router.get('/members', adminAuthMiddleware, async (req, res) => {
+router.get('/members', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   try {
     // Query to retrieve all police members
     const policeMembersQuery = `
@@ -559,7 +559,7 @@ router.get('/members', adminAuthMiddleware, async (req, res) => {
 //the police member is the only one that can see the reports of the users
 
 // Get a list of users for police members (protected route)
-router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.get('/users', policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM Utilizador WHERE ativo = TRUE');
     res.json(rows);
@@ -570,7 +570,7 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
 });
 
  // Definir um endpoint GET para buscar todos os leilões do past, active and future(protected route)
- router.get('/auctions', policeAuthMiddleware, isAuthenticated, async (req, res) => {
+ router.get('/auctions', policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const { type } = req.query;
   
   let query = '';
@@ -596,7 +596,7 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
 });
 
 // Edit details of a found item
-router.put('/items/found/:itemId', isAuthenticated,policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
+router.put('/items/found/:itemId', doubleAuthMiddleware,policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
   const { descricao_curta, descricao, categoria, data_achado, localizacao_achado, ativo, data_limite, valor_monetario } = req.body;
  
@@ -648,7 +648,7 @@ router.put('/items/found/:itemId', isAuthenticated,policeAuthMiddleware, doubleA
 });
 
 // Delete a found item
-router.delete("/items/found/:itemId", isAuthenticated, policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
+router.delete("/items/found/:itemId", doubleAuthMiddleware, policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
 
 

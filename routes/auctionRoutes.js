@@ -121,10 +121,8 @@ router.put('/auctions/:auctionId', isAuthenticated,doubleAuthMiddleware, policeA
   }
 });
 
-
-router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
+router.delete('/auctions/:auctionId', doubleAuthMiddleware, policeAuthMiddleware,   async (req, res) => {
   const { auctionId } = req.params;
-  const userId = req.userId;
 
   // Input validation
   if (isNaN(parseInt(auctionId))) {
@@ -147,6 +145,7 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
@@ -186,9 +185,8 @@ router.get('/auctions', async (req, res) => {
   }
 });
 
-
 // Subscribe and cancel notifications about an auction (RF-20)
-router.post('/auctions/:auctionId/notify', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/notify', doubleAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
   const { userId } = req.body;
 
@@ -212,7 +210,7 @@ router.post('/auctions/:auctionId/notify', isAuthenticated, async (req, res) => 
   }
 });
 
-router.post('/auctions/:auctionId/notify/cancel', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/notify/cancel', doubleAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
   const { userId } = req.body;
 
@@ -237,7 +235,7 @@ router.post('/auctions/:auctionId/notify/cancel', isAuthenticated, async (req, r
 });
 
 // Start and end an auction (RF-22)
-router.post('/auctions/:auctionId/start', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/start', doubleAuthMiddleware, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
 
   // Input validation
@@ -262,7 +260,7 @@ router.post('/auctions/:auctionId/start', isAuthenticated, async (req, res) => {
   }
 });
 
-router.post('/auctions/:auctionId/end', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/end', doubleAuthMiddleware, policeAuthMiddleware, isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
 
   // Input validation
@@ -288,7 +286,7 @@ router.post('/auctions/:auctionId/end', isAuthenticated, async (req, res) => {
 });
 
 // View bidding history in an auction (RF-23)
-router.get('/auctions/:auctionId/bids', isAuthenticated, async (req, res) => {
+router.get('/auctions/:auctionId/bids', doubleAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
 
   // Input validation
@@ -308,8 +306,7 @@ router.get('/auctions/:auctionId/bids', isAuthenticated, async (req, res) => {
 });
 
 // Bid on an object in an auction (RF-24)
-// Bid on an object in an auction (RF-24)
-router.post('/auctions/:auctionId/bid', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/bid', doubleAuthMiddleware, isAuthenticated, async (req, res) => {
   const { auctionId } = req.params;
   const { valorLicitacao } = req.body; // Remove utilizadorId from body
 
@@ -358,9 +355,8 @@ router.post('/auctions/:auctionId/bid', isAuthenticated, async (req, res) => {
 });
 
 
-
 // Process payment for a bidded object (RF-25)
-router.post('/auctions/:auctionId/pay', isAuthenticated, async (req, res) => {
+router.post('/auctions/:auctionId/pay', doubleAuthMiddleware, async (req, res) => {
   const { auctionId } = req.params;
   const { bidderId, amount } = req.body;
 
@@ -382,7 +378,7 @@ router.post('/auctions/:auctionId/pay', isAuthenticated, async (req, res) => {
 });
 
 // View history of objects bought at auction (RF-26)
-router.get('/auctions/history', isAuthenticated, async (req, res) => {
+router.get('/auctions/history', doubleAuthMiddleware, async (req, res) => {
   const { userId } = req.query;
 
   // Input validation
@@ -426,7 +422,7 @@ router.get('/history', async (req, res) => {
   }
 });
 // Endpoint to view history of objects purchased at auction
-router.get('/auction-history/:userId', firebaseAuth, jwtCheck, async (req, res) => {
+router.get('/auction-history/:userId',doubleAuthMiddleware, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -446,7 +442,7 @@ router.get('/auction-history/:userId', firebaseAuth, jwtCheck, async (req, res) 
 });
 
 // Endpoint to notify of auction events
-router.post('/notify-auction-event', firebaseAuth, jwtCheck, async (req, res) => {
+router.post('/notify-auction-event', doubleAuthMiddleware, async (req, res) => {
   const { utilizador_id, mensagem, data } = req.body;
 
   try {
@@ -462,7 +458,7 @@ router.post('/notify-auction-event', firebaseAuth, jwtCheck, async (req, res) =>
 });
 
 // Endpoint to register a possible owner of a found object
-router.post('/register-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.post('/register-owner', doubleAuthMiddleware, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
 //sanitize input
 
@@ -479,7 +475,7 @@ router.post('/register-owner', firebaseAuth, policeAuthMiddleware, isAuthenticat
 });
 
 // Endpoint to edit a possible owner of a found object
-router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.put('/edit-owner', doubleAuthMiddleware, async (req, res) => {
   const { objetoAchadoId, utilizadorId } = req.body;
 
   try {
@@ -495,7 +491,7 @@ router.put('/edit-owner', firebaseAuth, policeAuthMiddleware, isAuthenticated, a
 });
 
 // Endpoint to remove a possible owner of a found object
-router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuthMiddleware, isAuthenticated, async (req, res) => {
+router.delete('/remove-owner/:objetoAchadoId',  policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const { objetoAchadoId } = req.params;
 
   try {
