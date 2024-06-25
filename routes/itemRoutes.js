@@ -43,6 +43,77 @@ router.get("/lost", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+router.get("/lost/search", async (req, res) => {
+  const { title, description, category } = req.query;
+
+  console.log("Search parameters:", { title, description, category });
+  if (!title && !description && !category) {
+    console.log("At least one of the following parameters is required: title, description, category");
+    return res.status(400).json({ error: "At least one of the following parameters is required: title, description, category" });
+  }
+
+  // Sanitize inputs
+  const sanitizedTitle = title ? sanitizeInput(title) : null;
+  const sanitizedDescription = description ? sanitizeInput(description) : null;
+  const sanitizedCategory = category ? sanitizeInput(category) : null;
+
+  // Build the query dynamically
+  let query = "SELECT * FROM ObjetoPerdido WHERE ativo = TRUE";
+  const queryParams = [];
+  let paramIndex = 1;
+
+  if (sanitizedTitle) {
+    query += ` AND titulo ILIKE $${paramIndex++}`;
+    queryParams.push(`%${sanitizedTitle}%`);
+  }
+  
+  if (sanitizedDescription) {
+    query += ` AND descricao ILIKE $${paramIndex++}`;
+    queryParams.push(`%${sanitizedDescription}%`);
+  }
+  
+  if (sanitizedCategory) {
+    query += ` AND categoria ILIKE $${paramIndex++}`;
+    queryParams.push(`%${sanitizedCategory}%`);
+  }
+
+  try {
+    const result = await pool.query(query, queryParams);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error searching lost items:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Get specific lost item
+router.get("/lost/:itemId", async (req, res) => {
+  const { itemId } = req.params;
+
+  // Input validation
+  if (isNaN(parseInt(itemId))) {
+    console.log("Invalid Item ID!");
+    return res.status(400).json({ error: "Invalid Item ID!" });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM ObjetoPerdido WHERE ID = $1",
+      [itemId]
+    );
+
+    if (result.rowCount === 0) {
+      console.log("Lost item not found");
+      return res.status(404).json({ error: "Item not found" });
+    }
+
+    console.log("Lost item details:", result.rows[0]);
+    return res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error("Error fetching lost item details:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 //Get especific lost item
 router.get("/lost/:itemId", async (req, res) => {
@@ -50,8 +121,8 @@ router.get("/lost/:itemId", async (req, res) => {
 
   // Input validation
   if (isNaN(parseInt(itemId))) {
-    console.log("Invalid item ID");
-    return res.status(400).json({ error: "Invalid item ID" });
+    console.log("Invalid Item ID!");
+    return res.status(400).json({ error: "Invalid Item ID!" });
   }
 
   try {
@@ -119,8 +190,8 @@ router.put("/lost/:itemId", isAuthenticated, doubleAuthMiddleware, async (req, r
 
   // Input validation and sanitization
   if (isNaN(parseInt(itemId))) {
-    console.log("Invalid item ID");
-    return res.status(400).json({ error: "Invalid item ID" });
+    console.log("Invalid Item ID!");
+    return res.status(400).json({ error: "Invalid Item ID!" });
   }
 
   const sanitizedTitulo = sanitizeInput(titulo);
@@ -169,8 +240,8 @@ router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
 
   // Input validation
   if (isNaN(parseInt(itemId))) {
-    console.log("Invalid item ID");
-    return res.status(400).json({ error: "Invalid item ID" });
+    console.log("Invalid Item ID!");
+    return res.status(400).json({ error: "Invalid Item ID!" });
   }
 
   try {
@@ -192,28 +263,7 @@ router.delete("/lost/:itemId", isAuthenticated, async (req, res) => {
   }
 });
 
-// Search lost items by qualquer cena (RF-xx)
-router.get("/lost/search", async (req, res) => {
-  const { query } = req.query;
 
-  if (!query) {
-    console.log("Query parameter is required");
-    return res.status(400).json({ error: "Query parameter is required" });
-  }
-
-  const sanitizedQuery = sanitizeInput(query);
-
-  try {
-    const result = await pool.query(
-      "SELECT * FROM ObjetoPerdido WHERE titulo ILIKE $1 OR descricao ILIKE $2 OR categoria ILIKE $3",
-      [`%${sanitizedQuery}%`, `%${sanitizedQuery}%`, `%${sanitizedQuery}%`]
-    );
-    res.status(200).json(result.rows);
-  } catch (error) {
-    console.error("Error searching lost items:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 // Search lost items by category (RF-11)
 router.get("/lost/category", isAuthenticated, async (req, res) => {
@@ -250,8 +300,8 @@ router.get(
 
     // Validate item IDs
     if (isNaN(parseInt(lostItemId)) || isNaN(parseInt(foundItemId))) {
-      console.log("Invalid item IDs");
-      return res.status(400).json({ error: "Invalid item IDs" });
+      console.log("Invalid Item ID!s");
+      return res.status(400).json({ error: "Invalid Item ID!s" });
     }
 
     // TODO: Check if the user is authorized (e.g., police officer)
@@ -317,8 +367,8 @@ router.get("/found/:itemId", async (req, res) => {
 
   // Input validation
   if (isNaN(parseInt(itemId))) {
-    console.log("Invalid item ID");
-    return res.status(400).json({ error: "Invalid item ID" });
+    console.log("Invalid Item ID!");
+    return res.status(400).json({ error: "Invalid Item ID!" });
   }
 
   try {

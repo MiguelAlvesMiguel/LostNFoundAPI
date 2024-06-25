@@ -603,8 +603,8 @@ router.put('/items/found/:itemId', isAuthenticated,policeAuthMiddleware, doubleA
 
   // Input validation and sanitization
   if (isNaN(parseInt(itemId))) {
-      console.log('Invalid item ID');
-      return res.status(400).json({ error: 'Invalid item ID' });
+      console.log('Invalid Item ID!');
+      return res.status(400).json({ error: 'Invalid Item ID!' });
   }
 
   const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
@@ -654,8 +654,8 @@ router.delete("/items/found/:itemId", isAuthenticated, policeAuthMiddleware, dou
 
   // Input validation
   if (isNaN(parseInt(itemId))) {
-      console.log("Invalid item ID");
-      return res.status(400).json({ error: "Invalid item ID" });
+      console.log("Invalid Item ID!");
+      return res.status(400).json({ error: "Invalid Item ID!" });
   }
 
   try {
