@@ -10,7 +10,7 @@ const { body, validationResult } = require('express-validator');
 
 const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
 const jwtCheck = require('../middlewares/jwtCheckMiddleware');
-const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
+
 
 const auth = getAuth(firebaseApp); // Get the Auth instance using the initialized Firebase App
 const admin = require('../middlewares/firebaseAdmin'); // Use the initialized Firebase Admin
@@ -77,13 +77,16 @@ router.post('/register',
     }
   }
 );
-
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+
+    // Retrieve user details including roles from the database
+    const userQuery = await pool.query('SELECT isCop, isAdmin FROM Utilizador WHERE email = $1', [email]);
+    const userType = userQuery.rows[0];
 
     const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
       grant_type: 'client_credentials',
@@ -94,7 +97,7 @@ router.post('/login', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
     console.log('User logged in successfully:', user);
-    res.status(200).json({ message: 'User logged in successfully', user, accessToken });
+    res.status(200).json({ message: 'User logged in successfully', user, accessToken, userType });
   } catch (error) {
     console.error('Error logging in user:', error);
     res.status(401).json({ error: error.message });

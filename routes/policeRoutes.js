@@ -300,7 +300,7 @@ router.post('/members', adminAuthMiddleware,doubleAuthMiddleware, async (req, re
 });
 
 // Define the PUT endpoint to edit an existing police member (protected route)
-router.put('/members/edit/:firebaseUid', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+router.put('/members/:firebaseUid', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   const { firebaseUid } = req.params;
   const { posto_policia, historico_policia } = req.body;
 
