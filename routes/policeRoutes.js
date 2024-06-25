@@ -126,6 +126,7 @@ router.get('/items/found', policeAuthMiddleware, isAuthenticated, async (req, re
 });
 
 
+
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
 router.post('/items/found/register', policeAuthMiddleware, isAuthenticated, async (req, res) => {
 
@@ -591,6 +592,88 @@ router.get('/users', policeAuthMiddleware, isAuthenticated, async (req, res) => 
   } catch (error) {
     console.error('Error executing query', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Edit details of a found item
+router.put('/items/found/:itemId', isAuthenticated,policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
+  const { itemId } = req.params;
+  const { descricao_curta, descricao, categoria, data_achado, localizacao_achado, ativo, data_limite, valor_monetario } = req.body;
+ 
+
+  // Input validation and sanitization
+  if (isNaN(parseInt(itemId))) {
+      console.log('Invalid item ID');
+      return res.status(400).json({ error: 'Invalid item ID' });
+  }
+
+  const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
+  const sanitizedDescricao = sanitizeInput(descricao);
+  const sanitizedCategoria = sanitizeInput(categoria);
+  const sanitizedLocalizacao = {
+      latitude: sanitizeInput(localizacao_achado.latitude.toString()),
+      longitude: sanitizeInput(localizacao_achado.longitude.toString())
+  };
+
+  try {
+      const result = await pool.query(
+          `UPDATE ObjetoAchado 
+           SET descricao_curta = $1, descricao = $2, categoria = $3, data_achado = $4, localizacao_achado = $5, ativo = $6, data_limite = $7, valor_monetario = $8 
+           WHERE id = $9 `,
+          [
+              sanitizedDescricaoCurta,
+              sanitizedDescricao,
+              sanitizedCategoria,
+              data_achado,
+              sanitizedLocalizacao,
+              ativo,
+              data_limite,
+              valor_monetario,
+              itemId
+             
+          ]
+      );
+
+      if (result.rowCount === 0) {
+          console.log('Found item not found or not authorized');
+          res.status(404).json({ error: 'Item not found or not authorized' });
+      } else {
+          console.log('Found item details updated successfully');
+          res.status(200).json({ message: 'Found item details updated' });
+      }
+  } catch (error) {
+      console.error('Error updating found item details:', error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete a found item
+router.delete("/items/found/:itemId", isAuthenticated, policeAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
+  const { itemId } = req.params;
+
+
+  // Input validation
+  if (isNaN(parseInt(itemId))) {
+      console.log("Invalid item ID");
+      return res.status(400).json({ error: "Invalid item ID" });
+  }
+
+  try {
+      const result = await pool.query(
+          "DELETE FROM ObjetoAchado WHERE ID = $1",
+          [itemId]
+      );
+
+      if (result.rowCount === 0) {
+          console.log("Found item not found or not authorized");
+          res.status(404).json({ error: "Item not found or not authorized" });
+      } else {
+          console.log("Found item deleted successfully");
+          res.status(200).json({ message: "Found item deleted" });
+      }
+  } catch (error) {
+      console.error("Error deleting found item:", error);
+      res.status(500).json({ error: "Internal server error" });
   }
 });
 
