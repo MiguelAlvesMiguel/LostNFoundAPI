@@ -245,17 +245,19 @@ router.get('/items/found', policeAuthMiddleware, doubleAuthMiddleware, async (re
 
 
 
+// Server Side
 // Define the POST endpoint to register a found item and if there is a correspondent lost item, set ativo (on lost item table) to false (protected route)
-router.post('/items/found/register', policeAuthMiddleware, doubleAuthMiddleware,isAuthenticated, async (req, res) => {
-
-
+router.post('/items/found/register', policeAuthMiddleware, doubleAuthMiddleware, isAuthenticated, async (req, res) => {
   // Extract details from the request body
-  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario,imageURL} = req.body;
-
+  const { titulo, descricao_curta, descricao, categoria, data_achado, localizacao_achado, data_limite, valor_monetario, imageURL } = req.body;
+  const userID = req.userId;
   // Validate required fields to ensure no critical data is missing
   if (!titulo || !descricao_curta || !descricao || !categoria || !data_achado || !localizacao_achado || !data_limite || !imageURL) {
     return res.status(400).json({ error: 'Invalid input: required fields are missing.' });
   }
+
+  //Log userID
+  console.log('User ID:', userID);
 
   const sanitizedTitulo = sanitizeInput(titulo);
   const sanitizedDescricaoCurta = sanitizeInput(descricao_curta);
@@ -286,9 +288,8 @@ router.post('/items/found/register', policeAuthMiddleware, doubleAuthMiddleware,
   const sanitizedValorMonetario = parseFloat(valor_monetario);
 
   try {
-
     // Buscar o ID do policial usando o firebase_uid do req.userId
-    const resultPolicial = await pool.query('SELECT id FROM MembroPolicia WHERE utilizador_id = $1', [req.userId]);
+    const resultPolicial = await pool.query('SELECT id FROM MembroPolicia WHERE utilizador_id = $1', [userID]);
     if (resultPolicial.rowCount === 0) {
       return res.status(404).json({ error: 'Policial não encontrado' });
     }
@@ -341,6 +342,7 @@ router.post('/items/found/register', policeAuthMiddleware, doubleAuthMiddleware,
     res.status(500).json({ error: 'Server error while registering the found item.' });
   }
 });
+
 
 
 // Define the POST endpoint to register a new police member (protected route)
