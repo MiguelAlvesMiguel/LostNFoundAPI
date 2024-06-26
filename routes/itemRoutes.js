@@ -105,8 +105,7 @@ router.get("/lost/search", async (req, res) => {
 // Endpoint to search found objects corresponding to lost objects
 router.get(
   "/found/search",
-  policeAuthMiddleware,
-  doubleAuthMiddleware,
+
   async (req, res) => {
     const { title, description, category } = req.query;
 
@@ -134,17 +133,22 @@ router.get(
     let paramIndex = 1;
 
     if (sanitizedTitle) {
-      query += ` AND titulo ILIKE $${paramIndex++}`;
+      query += ` AND (titulo ILIKE $${paramIndex++}`;
       queryParams.push(`%${sanitizedTitle}%`);
     }
 
     if (sanitizedDescription) {
-      query += ` AND descricao_curta ILIKE $${paramIndex++}`;
+      query += sanitizedTitle
+        ? ` OR descricao ILIKE $${paramIndex++}`
+        : ` AND (descricao ILIKE $${paramIndex++}`;
       queryParams.push(`%${sanitizedDescription}%`);
     }
 
     if (sanitizedCategory) {
-      query += ` AND categoria ILIKE $${paramIndex++}`;
+      query +=
+        sanitizedTitle || sanitizedDescription
+          ? ` OR categoria ILIKE $${paramIndex++}`
+          : ` AND (categoria ILIKE $${paramIndex++}`;
       queryParams.push(`%${sanitizedCategory}%`);
     }
 
@@ -461,8 +465,7 @@ router.get(
 // GET ALL FOUND ITEMS
 router.get(
   "/found",
-  doubleAuthMiddleware,
-  policeAuthMiddleware,
+
   async (req, res) => {
     try {
       const { rows } = await pool.query("SELECT * FROM ObjetoAchado");
