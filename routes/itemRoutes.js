@@ -397,7 +397,7 @@ router.get(
 );
 
 // GET ALL FOUND ITEMS
-router.get("/found",  async (req, res) => {
+router.get("/found", doubleAuthMiddleware,policeAuthMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM ObjetoAchado");
     res.json(rows);
@@ -434,7 +434,7 @@ router.get("/found/:itemId",doubleAuthMiddleware,policeAuthMiddleware, async (re
 });
 
 // Register delivery of a found item to its owner (RF-16)
-router.post("/found/:itemId/deliver", isAuthenticated,doubleAuthMiddleware, async (req, res) => {
+router.post("/found/:itemId/deliver", isAuthenticated,doubleAuthMiddleware, policeAuthMiddleware, async (req, res) => {
   const { itemId } = req.params;
   const { ownerId, deliveryDate } = req.body;
   const userId = req.userId;
@@ -485,9 +485,5 @@ router.post("/found/:itemId/deliver", isAuthenticated,doubleAuthMiddleware, asyn
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
-
-
-
+  
 module.exports = router;

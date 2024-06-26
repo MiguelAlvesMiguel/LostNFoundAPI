@@ -460,14 +460,11 @@ router.post('/posts', adminAuthMiddleware,doubleAuthMiddleware,async (req, res) 
   
 
 // Define the PUT endpoint to edit an existing police post (protected route)
-router.put('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
+router.delete('/posts/:postId', adminAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
-  const { morada } = req.body;
 
-  const sanitizedMorada = sanitizeInput(morada);
-
-  if (isNaN(postId) || !morada || typeof morada !== 'string') {
-    return res.status(400).json({ error: 'Invalid input: missing or invalid "postId" or "morada".' });
+  if (isNaN(postId)) {
+    return res.status(400).json({ error: 'Invalid postId. It must be a number.' });
   }
 
   try {
@@ -479,25 +476,37 @@ router.put('/posts/:postId', adminAuthMiddleware,doubleAuthMiddleware, async (re
       return res.status(404).json({ error: 'Police post not found.' });
     }
 
-    // Prepare the SQL query to update the police post
-    const updateQuery = `
-      UPDATE PostoPolicia
-      SET morada = $1
-      WHERE ID = $2
-    `;
-    const values = [sanitizedMorada, postId];
+    // Check if the "Sem-Abrigo" post exists
+    const semAbrigoCheckQuery = 'SELECT ID FROM PostoPolicia WHERE morada = $1';
+    const semAbrigoCheckResult = await pool.query(semAbrigoCheckQuery, ['Sem-Abrigo']);
 
-    // Execute the query with parameterized values to prevent SQL injection
-    await pool.query(updateQuery, values);
+    let semAbrigoId;
+    if (semAbrigoCheckResult.rowCount === 0) {
+      // Create the "Sem-Abrigo" post if it doesn't exist
+      const createSemAbrigoQuery = 'INSERT INTO PostoPolicia (morada) VALUES ($1) RETURNING ID';
+      const createSemAbrigoResult = await pool.query(createSemAbrigoQuery, ['Sem-Abrigo']);
+      semAbrigoId = createSemAbrigoResult.rows[0].id;
+    } else {
+      semAbrigoId = semAbrigoCheckResult.rows[0].id;
+    }
 
-    // Return a 200 response to indicate successful update
-    res.status(200).json({ message: 'Police post updated successfully' });
+    // Update affected cops to the "Sem-Abrigo" post
+    const updateCopsQuery = 'UPDATE MembroPolicia SET posto_policia = $1 WHERE posto_policia = $2';
+    await pool.query(updateCopsQuery, [semAbrigoId, postId]);
+
+    // Prepare the SQL query to delete the police post
+    const deleteQuery = 'DELETE FROM PostoPolicia WHERE ID = $1';
+    await pool.query(deleteQuery, [postId]);
+
+    // Return a 200 response to indicate successful deletion
+    res.status(200).json({ message: 'Police post deleted successfully' });
 
   } catch (error) {
-    console.error('Error updating police post:', error);
-    res.status(500).json({ error: 'Server error while updating police post.' });
+    console.error('Error deleting police post:', error);
+    res.status(500).json({ error: 'Server error while deleting police post.' });
   }
 });
+
 
 router.delete('/posts/:postId', adminAuthMiddleware, doubleAuthMiddleware, async (req, res) => {
   const postId = parseInt(req.params.postId, 10);
