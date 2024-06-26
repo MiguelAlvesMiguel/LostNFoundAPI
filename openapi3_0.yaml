@@ -1547,6 +1547,142 @@ paths:
           description: Internal server error
       security:
         - bearerAuth: []
+  /auctions/auctions/{auctionId}/highest-bidder:
+    get:
+      summary: Get the highest bidder of an auction
+      description: Retrieve the highest bidder for a given auction
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          description: ID of the auction
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Highest bidder retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  utilizador_id:
+                    type: string
+                    description: ID of the user who placed the highest bid
+                  valor_licitacao:
+                    type: number
+                    description: Value of the highest bid
+        '404':
+          description: No bids found for this auction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+      security:
+        - bearerAuth: []
+
+  /auctions/auction-history:
+    get:
+      summary: Get auction history for logged-in user
+      description: Retrieve the auction history for the logged-in user
+      responses:
+        '200':
+          description: Auction history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    leilao_id:
+                      type: integer
+                      description: ID of the auction
+                    data_inicio:
+                      type: string
+                      format: date
+                      description: Start date of the auction
+                    data_fim:
+                      type: string
+                      format: date
+                      description: End date of the auction
+                    localizacao:
+                      type: string
+                      description: Location of the auction
+                    valor_base:
+                      type: number
+                      description: Base value of the auction
+                    data_pagamento:
+                      type: string
+                      format: date
+                      description: Date of payment
+                    valor:
+                      type: number
+                      description: Amount paid
+                    objeto_descricao:
+                      type: string
+                      description: Description of the object auctioned
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+      security:
+        - bearerAuth: []
+  /users/user/role:
+    get:
+      summary: Check if the user is a cop or a regular user
+      description: Returns the role (cop or regular user) and the Firebase UID of the logged-in user
+      responses:
+        '200':
+          description: User role retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isCop:
+                    type: boolean
+                    description: Indicates if the user is a cop
+                  firebase_uid:
+                    type: string
+                    description: Firebase UID of the user
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+      security:
+        - bearerAuth: []
 
 
 

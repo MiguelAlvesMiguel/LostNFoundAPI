@@ -88,13 +88,28 @@ router.post('/add-pagamento', async (req, res) => {
   const { licitacao_id, utilizador_id, valor } = req.body;
 
   try {
-    const sanitizedLicitacaoId = parseInt(sanitizeInput(licitacao_id), 10);
     const sanitizedUtilizadorId = sanitizeInput(utilizador_id);
+    const sanitizedLicitacaoId = parseInt(licitacao_id, 10);
     const sanitizedValor = parseFloat(valor);
 
     if (isNaN(sanitizedLicitacaoId) || isNaN(sanitizedValor) || !sanitizedUtilizadorId || sanitizedValor <= 0) {
       console.error('Invalid input:', { licitacao_id, utilizador_id, valor });
       return res.status(400).json({ error: 'Invalid input' });
+    }
+
+    const existingPayment = await pool.query(
+      'SELECT * FROM Pagamento WHERE licitacao_id = $1 AND utilizador_id = $2',
+      [sanitizedLicitacaoId, sanitizedUtilizadorId]
+    );
+
+    if (existingPayment.rows.length > 0) {
+      if (existingPayment.rows[0].ativo) {
+        console.log('Payment already made');
+        return res.status(400).json({ error: 'Payment already made' });
+      } else {
+        console.log('Existing inactive payment found, proceeding to checkout');
+        return res.status(200).json(existingPayment.rows[0]);
+      }
     }
 
     const result = await pool.query(
@@ -142,7 +157,5 @@ router.post('/update-pagamento', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-//FALTA PROTEGER COM O FIREBASE E FALTA METER OS ENDPOINTS NO YAML
 
 module.exports = router;

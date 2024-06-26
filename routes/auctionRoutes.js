@@ -126,6 +126,7 @@ router.delete('/auctions/:auctionId', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 router.get('/auctions', async (req, res) => {
   const { status } = req.query;
 
@@ -491,6 +492,59 @@ router.delete('/remove-owner/:objetoAchadoId', firebaseAuth, policeAuthMiddlewar
   }
 });
 
+//get the highest bidder of an auction
+router.get('/auctions/:auctionId/highest-bidder', isAuthenticated, async (req, res) => {
+  const { auctionId } = req.params;
 
+  try {
+    const result = await pool.query(`
+      SELECT utilizador_id, valor_licitacao
+      FROM Licitacao
+      WHERE leilao_id = $1
+      ORDER BY valor_licitacao DESC
+      LIMIT 1
+    `, [auctionId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No bids found for this auction' });
+    }
+
+    console.log('Highest bidder retrieved successfully:', result.rows[0]);
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching highest bidder:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to get auction history for logged-in user
+router.get('/auction-history', isAuthenticated, async (req, res) => {
+  const userId = req.userId;
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        l.ID as leilao_id,
+        l.data_inicio,
+        l.data_fim,
+        l.localizacao,
+        l.valor_base,
+        p.data_pagamento,
+        p.valor,
+        obj.descricao as objeto_descricao
+      FROM Pagamento p
+      JOIN Licitacao li ON p.licitacao_id = li.ID
+      JOIN Leilao l ON li.leilao_id = l.ID
+      JOIN ObjetoAchado obj ON l.objeto_achado_id = obj.ID
+      WHERE p.utilizador_id = $1 AND p.ativo = true
+      ORDER BY p.data_pagamento DESC
+    `, [userId]);
+
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching auction history:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;
