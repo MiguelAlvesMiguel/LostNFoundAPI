@@ -8,35 +8,15 @@ const axios = require('axios');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 
-const firebaseAuthMiddleware = require('../middlewares/firebaseAuthMiddleware');
-const jwtCheck = require('../middlewares/jwtCheckMiddleware');
 const doubleAuthMiddleware = require('../middlewares/doubleAuthMiddleware');
+const jwtCheck = require('../middlewares/jwtCheckMiddleware');
+
 
 const auth = getAuth(firebaseApp); // Get the Auth instance using the initialized Firebase App
 const admin = require('../middlewares/firebaseAdmin'); // Use the initialized Firebase Admin
 const { sendPasswordResetEmail } = require('firebase/auth');
 const policeAuthMiddleware = require('../middlewares/policeAuth');
 
-const isAuthenticated = async (req, res, next) => {
-  try {
-    const { authorization } = req.headers;
-
-    if (authorization && authorization.startsWith("Bearer ")) {
-      const idToken = authorization.split("Bearer ")[1];
-      console.log("Verifying ID token...");
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      console.log("ID token is valid:", decodedToken);
-      req.userId = decodedToken.uid;
-      return next();
-    }
-
-    console.log("No authorization token was found");
-    res.status(401).json({ error: "Unauthorized" });
-  } catch (error) {
-    console.error("Error while verifying Firebase ID token:", error);
-    res.status(401).json({ error: "Unauthorized" });
-  }
-};
 
 router.get('/', (req, res) => {
   console.log('GET /v1/users');
@@ -44,7 +24,7 @@ router.get('/', (req, res) => {
 });
 
 // routes/userRoutes.js
-router.get('/users', policeAuthMiddleware,isAuthenticated,doubleAuthMiddleware, async (req, res) => {
+router.get('/users', policeAuthMiddleware,doubleAuthMiddleware, async (req, res) => {
   try {
     const result = await pool.query('SELECT firebase_uid, nome, email FROM Utilizador');
     res.status(200).json(result.rows);
@@ -53,7 +33,6 @@ router.get('/users', policeAuthMiddleware,isAuthenticated,doubleAuthMiddleware, 
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 router.post('/register',
   [
@@ -98,16 +77,16 @@ router.post('/register',
     }
   }
 );
-
-module.exports = router;
-
-
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+
+    // Retrieve user details including roles from the database
+    const userQuery = await pool.query('SELECT isCop, isAdmin FROM Utilizador WHERE email = $1', [email]);
+    const userType = userQuery.rows[0];
 
     const tokenResponse = await axios.post(`https://${auth0Config.domain}/oauth/token`, {
       grant_type: 'client_credentials',
@@ -118,7 +97,7 @@ router.post('/login', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
     console.log('User logged in successfully:', user);
-    res.status(200).json({ message: 'User logged in successfully', user, accessToken });
+    res.status(200).json({ message: 'User logged in successfully!', userType,user, accessToken });
   } catch (error) {
     console.error('Error logging in user:', error);
     res.status(401).json({ error: error.message });
@@ -146,7 +125,7 @@ router.post('/google-signin', async (req, res) => {
   }
 });
 
-// Use FirebaseAuthMiddleware for Firebase tokens
+// Use doubleAuthMiddleware for Firebase tokens
 router.get('/me', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
@@ -169,7 +148,7 @@ router.get('/auth0-example', jwtCheck, async (req, res) => {
   res.status(200).json({ message: 'Auth0 token is valid' });
 });
 
-router.put('/me', firebaseAuthMiddleware, async (req, res) => {
+router.put('/me', doubleAuthMiddleware, async (req, res) => {
   const { nome, genero, data_nasc, morada, telemovel, historico, ativo } = req.body;
   const firebase_uid = req.user.uid;
 
@@ -190,7 +169,7 @@ router.put('/me', firebaseAuthMiddleware, async (req, res) => {
   }
 });
 
-router.delete('/me', firebaseAuthMiddleware, async (req, res) => {
+router.delete('/me', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {
@@ -207,7 +186,7 @@ router.delete('/me', firebaseAuthMiddleware, async (req, res) => {
   }
 });
 
-router.get('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
+router.get('/me/notifications', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {
@@ -223,7 +202,7 @@ router.get('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
   }
 });
 
-router.post('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
+router.post('/me/notifications', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
   const { message } = req.body;
 
@@ -244,7 +223,7 @@ router.post('/me/notifications', firebaseAuthMiddleware, async (req, res) => {
   }
 });
 
-router.put('/me/status', firebaseAuthMiddleware, async (req, res) => {
+router.put('/me/status', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
   const { status } = req.body;
 
@@ -265,7 +244,7 @@ router.put('/me/status', firebaseAuthMiddleware, async (req, res) => {
   }
 });
 
-router.post('/logout', async (req, res) => {
+router.post('/logout',doubleAuthMiddleware, async (req, res) => {
   await auth.signOut();
 
   if (auth.currentUser) {
@@ -276,7 +255,7 @@ router.post('/logout', async (req, res) => {
 });
 
 
-router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
+router.get('/mylostitems', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {
@@ -298,7 +277,7 @@ router.get('/mylostitems', [firebaseAuthMiddleware], async (req, res) => {
 });
 
 // Endpoint to deactivate user account
-router.put('/me/deactivate', firebaseAuthMiddleware, async (req, res) => {
+router.put('/me/deactivate', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {
@@ -319,7 +298,7 @@ router.put('/me/deactivate', firebaseAuthMiddleware, async (req, res) => {
 });
 
 // Endpoint to activate user account
-router.put('/me/activate', firebaseAuthMiddleware, async (req, res) => {
+router.put('/me/activate', doubleAuthMiddleware, async (req, res) => {
   const firebase_uid = req.user.uid;
 
   try {

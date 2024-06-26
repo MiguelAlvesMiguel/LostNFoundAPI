@@ -87,7 +87,7 @@ describe('Item Endpoints', () => {
       expect(updateResponse.body.message).to.equal('Lost item details updated');
     });
 
-    it('should return an error for invalid item ID', async () => {
+    it('should return an error for Invalid Item ID!', async () => {
       const response = await request(app)
         .put('/items/lost/invalid-id')
         .set('Authorization', `Bearer ${authToken}`)
@@ -100,7 +100,7 @@ describe('Item Endpoints', () => {
         });
 
       expect(response.status).to.equal(400);
-      expect(response.body.error).to.equal('Invalid item ID');
+      expect(response.body.error).to.equal('Invalid Item ID!');
     });
   });
 
@@ -128,13 +128,13 @@ describe('Item Endpoints', () => {
       expect(deleteResponse.status).to.equal(204);
     });
 
-    it('should return an error for invalid item ID', async () => {
+    it('should return an error for Invalid Item ID!', async () => {
       const response = await request(app)
         .delete('/items/lost/invalid-id')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).to.equal(400);
-      expect(response.body.error).to.equal('Invalid item ID');
+      expect(response.body.error).to.equal('Invalid Item ID!');
     });
   });
 
@@ -247,13 +247,13 @@ describe('Item Endpoints', () => {
       expect(compareResponse.body).to.have.property('differences');
     });
 
-    it('should return an error for invalid item IDs', async () => {
+    it('should return an error for Invalid Item ID!s', async () => {
       const response = await request(app)
         .get('/items/compare/invalid-id/invalid-id')
         .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).to.equal(400);
-      expect(response.body.error).to.equal('Invalid item IDs');
+      expect(response.body.error).to.equal('Invalid Item ID!s');
     });
   });
 

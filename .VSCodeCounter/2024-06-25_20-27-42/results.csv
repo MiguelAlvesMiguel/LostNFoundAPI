@@ -1,0 +1,27 @@
+"filename", "language", "JavaScript", "SQL", "JSON", "YAML", "Markdown", "comment", "blank", "total"
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\.github\workflows\deploy.yml", "YAML", 0, 0, 0, 55, 0, 0, 10, 65
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\Auth0Config.js", "JavaScript", 8, 0, 0, 0, 0, 0, 3, 11
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\CreateAndPopulateTables.sql", "SQL", 0, 179, 0, 0, 0, 23, 22, 224
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\FirebaseConfig.js", "JavaScript", 12, 0, 0, 0, 0, 1, 4, 17
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\README.md", "Markdown", 0, 0, 0, 0, 1, 0, 1, 2
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\VELHOTables_PTI_PTR.sql", "SQL", 0, 106, 0, 0, 0, 5, 12, 123
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\app.js", "JavaScript", 33, 0, 0, 0, 0, 2, 11, 46
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\middlewares\adminAuth.js", "JavaScript", 25, 0, 0, 0, 0, 3, 7, 35
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\middlewares\doubleAuthMiddleware.js", "JavaScript", 25, 0, 0, 0, 0, 4, 7, 36
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\middlewares\firebaseAdmin.js", "JavaScript", 6, 0, 0, 0, 0, 2, 3, 11
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\middlewares\firebaseAuthMiddleware.js", "JavaScript", 18, 0, 0, 0, 0, 2, 7, 27
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\middlewares\jwtCheckMiddleware.js", "JavaScript", 29, 0, 0, 0, 0, 4, 7, 40
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\middlewares\policeAuth.js", "JavaScript", 27, 0, 0, 0, 0, 4, 9, 40
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\moveToAuction.sql", "SQL", 0, 20, 0, 0, 0, 4, 4, 28
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\openapi3_0.yaml", "YAML", 0, 0, 0, 1593, 0, 0, 47, 1640
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\package-lock.json", "JSON", 0, 0, 3933, 0, 0, 0, 1, 3934
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\package.json", "JSON", 0, 0, 36, 0, 0, 0, 1, 37
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\populateTables.sql", "SQL", 0, 40, 0, 0, 0, 7, 12, 59
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\routes\auctionRoutes.js", "JavaScript", 400, 0, 0, 0, 0, 34, 81, 515
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\routes\itemRoutes.js", "JavaScript", 391, 0, 0, 0, 0, 29, 77, 497
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\routes\policeRoutes.js", "JavaScript", 483, 0, 0, 0, 0, 66, 134, 683
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\routes\reportsRoutes.js", "JavaScript", 240, 0, 0, 0, 0, 40, 56, 336
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\routes\stripeRoutes.js", "JavaScript", 117, 0, 0, 0, 0, 5, 27, 149
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\routes\userRoutes.js", "JavaScript", 298, 0, 0, 0, 0, 8, 62, 368
+"d:\FCUL\PROJETO FINAL\LostNFoundAPI\test\itemRoutes.js", "JavaScript", 233, 0, 0, 0, 0, 65, 38, 336
+"Total", "-", 2345, 345, 3969, 1648, 1, 308, 643, 9259
