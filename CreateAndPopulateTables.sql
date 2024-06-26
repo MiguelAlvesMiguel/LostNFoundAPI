@@ -194,11 +194,11 @@ VALUES
     (1, '2023-04-01', '2023-04-10', 'Online', 15.00, FALSE),
     (2, '2023-03-01', '2023-03-10', 'Online', 150.00, FALSE),
     -- Active Auctions
-    (3, '2024-05-10', '2024-05-20', 'Online', 50.00, TRUE),
-    (4, '2024-05-01', '2024-05-15', 'Online', 100.00, TRUE),
+    (3, '2024-05-10', '2024-07-20', 'Online', 50.00, TRUE),
+    (4, '2024-05-01', '2024-07-15', 'Online', 100.00, TRUE),
     -- Future Auctions
-    (1, '2024-06-01', '2024-06-10', 'Online', 25.00, FALSE),
-    (2, '2024-06-15', '2024-06-25', 'Online', 300.00, FALSE);
+    (1, '2024-08-01', '2024-08-10', 'Online', 25.00, FALSE),
+    (2, '2024-08-15', '2024-08-25', 'Online', 300.00, FALSE);
 
 -- Insert more auctions for each type of status
 INSERT INTO Leilao
