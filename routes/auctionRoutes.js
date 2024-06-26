@@ -260,11 +260,7 @@ router.post('/auctions/:auctionId/start', doubleAuthMiddleware, policeAuthMiddle
   }
 });
 
-<<<<<<< HEAD
 router.post('/auctions/:auctionId/end', isAuthenticated, policeAuthMiddleware, async (req, res) => {
-=======
-router.post('/auctions/:auctionId/end', doubleAuthMiddleware, policeAuthMiddleware, isAuthenticated, async (req, res) => {
->>>>>>> c26ac440c28abfa936907c40e41032dd6802fbc3
   const { auctionId } = req.params;
 
   // Input validation
