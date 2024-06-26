@@ -124,6 +124,58 @@ paths:
         '404':
           description: User not found
 
+  /users/password-reset:
+    post:
+      summary: Send password reset email
+      tags:
+        - User Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Password reset email sent
+        '400':
+          description: Invalid email
+        '500':
+          description: Internal server error
+
+  /items/mylostitems:
+   get:
+    summary: Retrieve my lost items
+    tags:
+      - Lost Items
+    responses:
+      '200':
+        description: List of my lost items
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LostItem'
+
+  /items/myfounditems:
+   get:
+    summary: Retrieve my found items
+    tags:
+      - Found Items
+    responses:
+      '200':
+        description: List of my found items
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/FoundItem'
+
   /items/compare/{lostItemId}/{foundItemId}:
     get:
       summary: Compare a lost item with a found item
@@ -164,7 +216,7 @@ paths:
         - Found Items
       summary: Search for found items
       parameters:
-        - in: query
+      '500':      '500':        - in: query
           name: description
           schema:
             type: string
@@ -179,6 +231,52 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/FoundItem'
+
+  /items/lost:
+   get:
+    summary: Retrieve all lost items
+    tags:
+      - Lost Items
+    responses:
+      '200':
+        description: List of lost items
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LostItem'
+
+  /items/lost/search:
+    get:
+      summary: Search for lost items
+      tags:
+        - Lost Items
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          description: Title of the lost item
+        - in: query
+          name: description
+          schema:
+            type: string
+          description: Description of the lost item
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Category of the lost item
+      responses:
+        '200':
+          description: List of matching lost items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LostItem'
 
   /items/lost/{itemId}/history:
     get:
@@ -235,6 +333,37 @@ paths:
           description: Found item delivery registered
         '404':
           description: Item not found
+
+ 
+    get:
+      summary: Search for lost items
+      tags:
+        - Lost Items
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          description: Title of the lost item
+        - in: query
+          name: description
+          schema:
+            type: string
+          description: Description of the lost item
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Category of the lost item
+      responses:
+        '200':
+          description: List of matching lost items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LostItem'
 
   /police/posts:
       get:
@@ -841,7 +970,6 @@ paths:
         '500':
           description: Internal server error. Indicates a server-side error that prevented the item from being registered.
 
-
   /police/items/{itemId}/claim:
     put:
       tags:
@@ -870,7 +998,6 @@ paths:
           description: Claimant not found or item not found or already claimed.
         '500':
           description: Server error while claiming the item.
-
 
   /auctions:
     get:
@@ -1547,6 +1674,7 @@ paths:
           description: Internal server error
       security:
         - bearerAuth: []
+  
   /auctions/auctions/{auctionId}/highest-bidder:
     get:
       summary: Get the highest bidder of an auction
@@ -1645,6 +1773,7 @@ paths:
                     type: string
       security:
         - bearerAuth: []
+  
   /users/user/role:
     get:
       summary: Check if the user is a cop or a regular user
@@ -1683,8 +1812,6 @@ paths:
                     type: string
       security:
         - bearerAuth: []
-
-
 
 components:
   schemas:
