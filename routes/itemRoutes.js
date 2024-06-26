@@ -54,12 +54,10 @@ router.get("/lost/search", async (req, res) => {
     console.log(
       "At least one of the following parameters is required: title, description, category"
     );
-    return res
-      .status(400)
-      .json({
-        error:
-          "At least one of the following parameters is required: title, description, category",
-      });
+    return res.status(400).json({
+      error:
+        "At least one of the following parameters is required: title, description, category",
+    });
   }
 
   // Sanitize inputs
@@ -117,12 +115,10 @@ router.get(
       console.log(
         "At least one of the following parameters is required: title, description, category"
       );
-      return res
-        .status(400)
-        .json({
-          error:
-            "At least one of the following parameters is required: title, description, category",
-        });
+      return res.status(400).json({
+        error:
+          "At least one of the following parameters is required: title, description, category",
+      });
     }
 
     // Sanitize inputs

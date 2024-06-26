@@ -18,6 +18,26 @@ const { sendPasswordResetEmail } = require('firebase/auth');
 const policeAuthMiddleware = require('../middlewares/policeAuth');
 
 
+const isAuthenticated = async (req, res, next) => {
+  try {
+    const { authorization } = req.headers;
+
+    if (authorization && authorization.startsWith("Bearer ")) {
+      const idToken = authorization.split("Bearer ")[1];
+      console.log("Verifying ID token...");
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      console.log("ID token is valid:", decodedToken);
+      req.userId = decodedToken.uid;
+      return next();
+    }
+
+    console.log("No authorization token was found");
+    res.status(401).json({ error: "Unauthorized" });
+  } catch (error) {
+    console.error("Error while verifying Firebase ID token:", error);
+    res.status(401).json({ error: "Unauthorized" });
+  }
+};
 router.get('/', (req, res) => {
   console.log('GET /v1/users');
   res.status(200).json({ message: 'Users endpoint working!' });
@@ -97,7 +117,7 @@ router.post('/login', async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
     console.log('User logged in successfully:', user);
-    res.status(200).json({ message: 'User logged in successfully', user, accessToken, userType });
+    res.status(200).json({ message: 'User logged in successfully!', userType,user, accessToken });
   } catch (error) {
     console.error('Error logging in user:', error);
     res.status(401).json({ error: error.message });
@@ -342,6 +362,24 @@ router.post('/reset-password-email',
     }
   }
 );
+
+// Endpoint to check if user is a cop or just a regular user. also returns the firebase_uid
+router.get('/user/role', isAuthenticated, async (req, res) => {
+  const userId = req.userId; // Assuming you have a middleware that sets this
+
+  try {
+    const result = await pool.query('SELECT isCop, firebase_uid FROM Utilizador WHERE firebase_uid = $1', [userId]);
+    if (result.rows.length > 0) {
+      res.status(200).json({ isCop: result.rows[0].iscop, firebase_uid: result.rows[0].firebase_uid });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 
 module.exports = router;
