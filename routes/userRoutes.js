@@ -18,6 +18,26 @@ const { sendPasswordResetEmail } = require('firebase/auth');
 const policeAuthMiddleware = require('../middlewares/policeAuth');
 
 
+const isAuthenticated = async (req, res, next) => {
+  try {
+    const { authorization } = req.headers;
+
+    if (authorization && authorization.startsWith("Bearer ")) {
+      const idToken = authorization.split("Bearer ")[1];
+      console.log("Verifying ID token...");
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      console.log("ID token is valid:", decodedToken);
+      req.userId = decodedToken.uid;
+      return next();
+    }
+
+    console.log("No authorization token was found");
+    res.status(401).json({ error: "Unauthorized" });
+  } catch (error) {
+    console.error("Error while verifying Firebase ID token:", error);
+    res.status(401).json({ error: "Unauthorized" });
+  }
+};
 router.get('/', (req, res) => {
   console.log('GET /v1/users');
   res.status(200).json({ message: 'Users endpoint working!' });
