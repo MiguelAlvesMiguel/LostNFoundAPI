@@ -214,14 +214,7 @@ paths:
     get:
       tags:
         - Found Items
-      summary: Search for found items
-      parameters:
-      '500':      '500':        - in: query
-          name: description
-          schema:
-            type: string
-          required: false
-          description: Description of the item
+      summary: Retrieve all found items
       responses:
         '200':
           description: List of found items
@@ -231,7 +224,92 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/FoundItem'
+        '401': 
+          description: Unauthorized
 
+  /items/found/{itemId}:
+    get:
+      summary: Get details of a specific found item
+      tags:
+        - Found Items
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer
+          description: ID of the found item
+      responses:
+        '200':
+          description: Details of the found item
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FoundItem'
+        '400':
+          description: Invalid Item ID
+        '404':
+          description: Item not found
+        '500':
+          description: Internal server error
+
+  /items/found/{itemId}/deliver:
+    post:
+      summary: Register delivery of a found item to its owner
+      tags:
+        - Found Items
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ownerId:
+                  type: integer
+                deliveryDate:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Found item delivery registered
+        '404':
+          description: Item not found
+        '500':
+          description: Internal server error
+
+    get:
+      summary: View history of a lost item
+      tags:
+        - Lost Items
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer 
+      responses:
+        '200':
+          description: History of the lost item
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    date:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+ 
   /items/lost:
    get:
     summary: Retrieve all lost items
@@ -278,9 +356,9 @@ paths:
                 items:
                   $ref: '#/components/schemas/LostItem'
 
-  /items/lost/{itemId}/history:
+  /items/lost/{itemId}:
     get:
-      summary: View history of a lost item
+      summary: Get details of a specific lost item
       tags:
         - Lost Items
       parameters:
@@ -288,70 +366,77 @@ paths:
           name: itemId
           required: true
           schema:
-            type: integer 
+            type: integer
+          description: ID of the lost item
       responses:
         '200':
-          description: History of the lost item
+          description: Details of the lost item
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    date:
-                      type: string
-                      format: date-time
-                    status:
-                      type: string
-
-  /items/found/{itemId}/deliver:
-    post:
-      summary: Register delivery of a found item to its owner
+                $ref: '#/components/schemas/LostItem'
+        '400':
+          description: Invalid Item ID
+        '404':
+          description: Item not found
+        '500':
+          description: Internal server error
+    put:
+      summary: Edit details of a lost item
       tags:
-        - Found Items
+        - Lost Items
       parameters:
         - in: path
           name: itemId
           required: true
           schema:
-            type: integer 
+            type: integer
+          description: ID of the lost item
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                ownerId:
-                  type: integer 
-                deliveryDate:
-                  type: string
-                  format: date-time
+              $ref: '#/components/schemas/LostItem'
       responses:
         '200':
-          description: Found item delivery registered
+          description: Lost item details updated
+        '400':
+          description: Invalid Item ID or input data
         '404':
-          description: Item not found
+          description: Item not found or not authorized
+        '500':
+          description: Internal server error
+    delete:
+      summary: Remove a lost item
+      tags:
+        - Lost Items
+      parameters:
+        - in: path
+          name: itemId
+          required: true
+          schema:
+            type: integer
+          description: ID of the lost item
+      responses:
+        '204':
+          description: Lost item removed
+        '400':
+          description: Invalid Item ID
+        '404':
+          description: Item not found or not authorized
+        '500':
+          description: Internal server error
 
- 
+  /items/lost/category:
     get:
-      summary: Search for lost items
+      summary: Search lost items by category
       tags:
         - Lost Items
       parameters:
         - in: query
-          name: title
-          schema:
-            type: string
-          description: Title of the lost item
-        - in: query
-          name: description
-          schema:
-            type: string
-          description: Description of the lost item
-        - in: query
           name: category
+          required: true
           schema:
             type: string
           description: Category of the lost item
@@ -364,6 +449,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/LostItem'
+        '400':
+          description: Category parameter is required
+        '500':
+          description: Internal server error
 
   /police/posts:
       get:
